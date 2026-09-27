@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#123b2a">
+<meta name="description" content="سوق العيص الإلكتروني — كل ما تحتاجه من محلات العيص في مكان واحد">
+<title>سوق العيص الإلكتروني</title>
+<!--
+هذه نسخة Single-File مرتبطة مباشرة بـ Cloud Firestore للاختبار.
+لا تستخدم Firebase Storage؛ الصور تُضغط وتُحفظ في Firestore داخل مجموعة media.
+ليست Production Backend.
+
+Production:
+- يجب تنفيذ RBAC بواسطة Firebase Authentication + Custom Claims + Firestore Security Rules.
+- هذه النسخة لا تستخدم Firebase Storage؛ الصور داخل Firestore في مجموعة media.
+- Production: استخدم Firestore/Cloud Functions للعمليات الحساسة وسجل الإدارة فقط.
+- عند تحويل النسخة إلى Production يجب إضافة Authentication وRBAC وSecurity Rules دقيقة وApp Check وCloud Functions عند الحاجة.
+- المفضلة للزائر تُحفظ في Firestore تحت favorites/{deviceId}; localStorage يُستخدم فقط لحفظ deviceId/session state.
+-->
+<style>
+:root{
+  --green:#123b2a; --green-2:#1c5940; --green-3:#2d7656;
+  --gold:#c9a24b; --gold-2:#e4c875; --cream:#f7f5ef;
+  --white:#fff; --ink:#17221c; --muted:#6d776f; --line:#e5e8e3;
+  --danger:#b93636; --success:#27784d; --shadow:0 8px 28px rgba(18,59,42,.09);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--cream);color:var(--ink);line-height:1.65}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%;height:auto}.cover img,.product-img img,.detail-cover img,.banner img,.preview{aspect-ratio:16/9}
+.app{min-height:100vh}
+.container{width:min(1160px,calc(100% - 28px));margin:auto}
+.topbar{background:var(--green);color:#fff;position:sticky;top:0;z-index:50;box-shadow:0 2px 14px #0002}
+.topbar-inner{height:68px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mark{width:52px;height:52px;border-radius:14px;object-fit:contain;background:#fff;padding:3px;border:2px solid #ffffff22;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.brand-text{min-width:0}.brand-title{font-weight:900;font-size:17px;white-space:nowrap}.brand-sub{font-size:10px;color:#d9eadf;white-space:nowrap}
+.header-actions{margin-right:auto;display:flex;gap:7px}
+.icon-btn,.header-btn{border:1px solid #ffffff25;background:#ffffff12;color:#fff;border-radius:12px;min-width:40px;height:40px;display:grid;place-items:center}
+.header-btn{padding:0 12px;font-size:13px}
+main{padding:22px 0 92px}
+.hero{background:linear-gradient(135deg,#123b2a 0%,#1f5a40 60%,#2f7455 100%);color:#fff;border-radius:26px;padding:28px 22px;margin-bottom:22px;overflow:hidden;position:relative}
+.hero:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:#c9a24b18;left:-70px;top:-90px}
+.hero h1{font-size:clamp(25px,6vw,42px);margin:0 0 5px;position:relative;z-index:1}
+.hero p{margin:0 0 18px;color:#e2efe8;position:relative;z-index:1}
+.searchbox{background:#fff;border-radius:15px;padding:5px;display:flex;gap:5px;position:relative;z-index:2;box-shadow:0 8px 22px #0002}
+.searchbox input{border:0;outline:0;flex:1;min-width:0;padding:11px;background:transparent;color:var(--ink)}
+.searchbox button{border:0;background:var(--gold);color:var(--green);border-radius:11px;padding:0 17px;font-weight:900}
+.section{margin:24px 0}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.section-title{font-size:20px;font-weight:900;margin:0}.section-title small{font-size:11px;color:var(--muted);font-weight:400;display:block}
+.link-btn{border:0;background:none;color:var(--green-2);font-weight:800;padding:5px}
+.grid{display:grid;gap:13px}.grid-cats{grid-template-columns:repeat(2,1fr)}.grid-shops{grid-template-columns:repeat(2,1fr)}
+.grid-products{grid-template-columns:repeat(2,1fr)}
+.category-card{background:linear-gradient(135deg,#d4af37,#f1d77a);border:1px solid var(--line);border-radius:17px;padding:15px;display:flex;align-items:center;gap:11px;box-shadow:0 3px 12px #00000006;transition:.18s}
+.category-card:hover,.card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.cat-icon{width:46px;height:46px;border-radius:14px;background:#edf5ef;display:grid;place-items:center;font-size:24px;flex:none}
+.category-card strong{font-size:13px;display:block}.category-card span{font-size:11px;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:0 3px 14px #00000006;transition:.18s}
+.shop-featured-head{height:42px;border-bottom:1px solid var(--line);overflow:hidden}.cover{height:135px;aspect-ratio:16/9;background:#dfe8e2;position:relative;overflow:hidden}.cover img{width:100%;height:100%;object-fit:cover}
+.placeholder{width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#eaf1ec,#d9e5dd);color:var(--green-2);font-weight:900}
+.shop-body,.product-body{padding:13px}.shop-logo{width:48px;height:48px;border-radius:14px;object-fit:cover;border:3px solid #fff;margin-top:-35px;position:relative;background:#fff;box-shadow:0 3px 10px #0002}
+.shop-name{font-weight:900;margin-top:7px}.meta{font-size:11px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.chip,.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800;background:#edf5ef;color:var(--green-2)}
+.badge.gold{background:#fff5d9;color:#80631d}.badge.red{background:#ffe9e9;color:var(--danger)}
+.price{font-size:18px;font-weight:900;color:var(--green-2)}.old-price{text-decoration:line-through;color:#929892;font-size:11px;margin-right:6px}
+.product-img{height:150px;aspect-ratio:4/3;background:#e9eee9;overflow:hidden}.product-img img{width:100%;height:100%;object-fit:cover}
+.product-name{font-weight:900;font-size:14px;margin:7px 0 4px}.product-actions{display:flex;gap:7px;margin-top:10px}
+.btn{border:0;border-radius:12px;padding:10px 13px;font-weight:800;font-size:12px;background:var(--green);color:#fff}
+.btn.secondary{background:#edf3ef;color:var(--green)}.btn.gold{background:var(--gold);color:var(--green)}
+.btn.outline{background:#fff;color:var(--green);border:1px solid var(--green)}
+.btn.danger{background:#fff0f0;color:var(--danger)}
+.btn.small{padding:7px 9px;font-size:11px}
+.full{width:100%}
+.special-card{border:1px solid #ecdba8}
+.offer-ribbon{position:absolute;top:10px;right:10px;background:var(--gold);color:var(--green);padding:5px 9px;border-radius:9px;font-weight:900;font-size:10px}
+.banner{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.banner img{height:170px;aspect-ratio:16/9;width:100%;object-fit:cover}.banner-body{padding:14px}
+.empty,.loading,.error{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+.error{color:var(--danger);border-color:#edcaca}
+.detail-head{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+.detail-cover{height:210px;aspect-ratio:16/9;background:#dfe8e2}.detail-cover img{width:100%;height:100%;object-fit:cover}
+.detail-info{padding:18px}.shop-identity{display:flex;align-items:center;gap:12px;margin-top:12px;position:relative;z-index:2}.detail-logo{width:58px;height:58px;border-radius:18px;object-fit:cover;border:4px solid #fff;background:#fff;box-shadow:var(--shadow);flex:none}.shop-identity .detail-title{margin:0}
+.detail-title{font-size:25px;font-weight:900;margin:8px 0 2px}
+.action-row{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:15px}
+.action-row .btn{padding:9px 4px;font-size:10px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}.action-row .btn .action-icon{font-size:15px;line-height:1}
+.back{border:0;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:10px;color:var(--green);font-weight:800;margin-bottom:12px}
+.form-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:var(--shadow)}
+.form-grid{display:grid;gap:12px}.field label{font-size:12px;font-weight:800;display:block;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1px solid #d9ded9;border-radius:11px;padding:10px 11px;outline:0;background:#fbfcfb}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green-3);box-shadow:0 0 0 3px #2d765618}
+textarea{min-height:90px;resize:vertical}
+.preview{width:100%;height:130px;object-fit:cover;border-radius:12px;background:#eef2ef;margin-top:7px}
+.tabs{display:flex;gap:7px;overflow:auto;padding-bottom:3px;margin-bottom:14px}.tab{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:800}.tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+.table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px}.table{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}.table th,.table td{padding:11px;border-bottom:1px solid var(--line);text-align:right}.table th{background:#f3f6f3;color:var(--green)}.table tr:last-child td{border:0}
+.bottom-nav{position:fixed;bottom:0;right:0;left:0;background:#fff;border-top:1px solid var(--line);z-index:60;display:grid;grid-template-columns:repeat(5,1fr);padding:6px max(8px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));box-shadow:0 -5px 20px #0000000b}
+.nav-item{border:0;background:none;color:#79817b;font-size:10px;padding:4px 2px}.nav-item span{display:block;font-size:19px;margin-bottom:1px}.nav-item.active{color:var(--green);font-weight:900}
+.toast{position:fixed;bottom:78px;right:50%;transform:translateX(50%) translateY(15px);background:#17221c;color:#fff;padding:11px 15px;border-radius:12px;font-size:12px;opacity:0;pointer-events:none;transition:.25s;z-index:100}.toast.show{opacity:1;transform:translateX(50%) translateY(0)}
+.modal{position:fixed;inset:0;background:#0008;z-index:90;display:none;align-items:flex-end;justify-content:center;padding:12px}.modal.show{display:flex}.modal-box{background:#fff;border-radius:20px 20px 12px 12px;width:min(620px,100%);max-height:90vh;overflow:auto;padding:18px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.close{border:0;background:#edf2ee;border-radius:10px;width:35px;height:35px}
+.notice{background:#fff8df;border:1px solid #ebd68d;border-radius:14px;padding:12px;font-size:12px;color:#6f581e}
+.admin-nav{display:flex;gap:7px;overflow:auto;margin-bottom:15px}.admin-nav button{white-space:nowrap}
+.icon-btn:focus-visible,.header-btn:focus-visible,.btn:focus-visible,.tab:focus-visible,.nav-item:focus-visible,.back:focus-visible,.link-btn:focus-visible,.category-card:focus-visible{outline:3px solid #e4c875;outline-offset:2px}.modal[aria-hidden="true"]{visibility:hidden}.modal[aria-hidden="false"]{visibility:visible}body.modal-open{overflow:hidden}
+@media(max-width:599px){.action-row{grid-template-columns:repeat(2,1fr)}.action-row .btn:last-child{grid-column:span 2}}
+@media(min-width:600px){
+  .grid-cats{grid-template-columns:repeat(4,1fr)}.grid-shops{grid-template-columns:repeat(3,1fr)}.grid-products{grid-template-columns:repeat(3,1fr)}
+  .form-grid.two{grid-template-columns:repeat(2,1fr)}
+}
+@media(min-width:900px){
+  .bottom-nav{display:none}.topbar-inner{height:74px}.hero{padding:42px}.cover{height:160px}.product-img{height:180px}.detail-cover{height:230px}
+  .form-grid.three{grid-template-columns:repeat(3,1fr)}main{padding-bottom:35px}
+}
+.cart-fab{position:fixed;left:16px;bottom:86px;z-index:75;border:0;background:var(--gold);color:var(--green);border-radius:999px;padding:11px 15px;font-weight:900;box-shadow:0 8px 24px #0003;display:flex;align-items:center;gap:7px}.cart-count{background:var(--green);color:#fff;border-radius:999px;min-width:23px;height:23px;display:inline-grid;place-items:center;font-size:11px}.cart-overlay{position:fixed;inset:0;background:#0007;z-index:85;display:none;align-items:flex-end;justify-content:center;padding:12px}.cart-overlay.show{display:flex}.cart-panel{background:#fff;border-radius:22px 22px 12px 12px;width:min(620px,100%);max-height:82vh;overflow:auto;padding:18px;box-shadow:0 -8px 30px #0003}.cart-item{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.cart-item img{width:58px;height:58px;border-radius:12px;object-fit:cover;background:#eef2ef}.qty{display:flex;align-items:center;gap:7px;justify-content:flex-end}.qty button{border:1px solid var(--line);background:#f5f7f5;border-radius:8px;width:30px;height:30px;font-weight:900}.cart-total{display:flex;justify-content:space-between;font-size:17px;font-weight:900;padding:14px 0}.cart-note{font-size:11px;color:var(--muted);background:#f5f7f5;border-radius:10px;padding:8px;margin-top:8px}@media(max-width:599px){.cart-fab{left:10px;bottom:82px}.cart-panel{max-height:86vh}}.hidden{display:none!important}.muted{color:var(--muted)}.center{text-align:center}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.space{justify-content:space-between}
+
+.featured-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.featured-shop-card{position:relative;background:linear-gradient(145deg,#fff,#fbf5df);border:1px solid #ead7a0;border-radius:22px;overflow:hidden;box-shadow:0 8px 22px rgba(18,59,42,.10)}
+.featured-shop-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--gold),var(--gold-2),var(--gold))}
+.featured-shop-inner{padding:17px}.featured-shop-top{display:flex;align-items:center;gap:12px}
+.featured-shop-logo{width:64px;height:64px;border-radius:18px;object-fit:cover;background:#fff;border:3px solid #fff;box-shadow:0 4px 14px #0002;flex:none}
+.featured-shop-name{font-size:15px;font-weight:900;line-height:1.4}.featured-shop-cat{font-size:11px;color:var(--muted);margin-top:3px}
+.featured-shop-badge{margin-right:auto;background:#fff1bd;color:#725719;border:1px solid #e5c86d;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900}
+.featured-shop-delivery{margin-top:11px;background:#fff;border:1px solid #eee3c4;border-radius:12px;padding:7px 9px;font-size:11px;font-weight:800}
+.featured-shop-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+.install-fab{position:fixed;right:14px;bottom:84px;z-index:76;border:0;border-radius:999px;background:var(--gold);color:var(--green);padding:12px 16px;font-weight:900;box-shadow:0 9px 26px #0003;display:none;align-items:center;gap:7px}
+.install-fab.show{display:flex}
+@media(max-width:599px){.featured-shop-grid{grid-template-columns:1fr}.install-fab{right:10px;bottom:80px}}
+
+/* Home page focused controls */
+.home-offers-toggle{width:100%;border:1px solid #e7d79f;background:linear-gradient(135deg,#fffdf5,#fff7df);color:var(--green);border-radius:18px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:right;box-shadow:0 5px 16px rgba(18,59,42,.07);transition:.18s}
+.home-offers-toggle:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(18,59,42,.10)}
+.home-offers-toggle>span:first-child{display:flex;align-items:center;gap:11px}
+.home-offers-icon{width:42px;height:42px;border-radius:13px;background:var(--gold);display:grid;place-items:center;font-size:21px;flex:none}
+.home-offers-toggle b{display:block;font-size:14px}
+.home-offers-toggle small{display:block;color:var(--muted);font-size:10px;margin-top:2px;font-weight:600}
+.home-offers-arrow{font-size:23px;line-height:1;transition:.18s;color:var(--green-2)}
+.home-offers-toggle.open .home-offers-arrow{transform:rotate(180deg)}
+.home-offers-toggle.open{border-color:#d5bd68;background:linear-gradient(135deg,#fff8df,#fffdf6)}
+.home-offers-box{margin-top:10px}
+.public-bottom-nav{grid-template-columns:repeat(4,1fr)}
+
+.category-grid-home{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:2px 1px 4px}
+.category-grid-home .category-mini{min-width:0;width:100%;box-sizing:border-box}
+.home-featured-section{margin-top:2px}
+@media(max-width:380px){.category-grid-home{gap:8px}.category-grid-home .category-mini{padding:9px}}
+
+/* =========================
+   UI/UX ENHANCEMENT LAYER
+   ========================= */
+:root{
+  --green-deep:#0f3526; --green-soft:#eaf3ed; --gold-soft:#fff6dc;
+  --surface:#ffffff; --surface-2:#f3f6f3;
+  --radius-sm:12px; --radius-md:16px; --radius-lg:22px;
+}
+body{background:#f5f7f4}
+.topbar{backdrop-filter:blur(10px)}
+.topbar-inner{height:70px}
+.brand-mark{width:48px;height:48px;border-radius:13px}
+.header-actions{gap:6px}
+.header-btn{font-weight:800}
+main{padding-top:18px}
+.hero{border-radius:24px;padding:25px 20px;box-shadow:0 10px 28px rgba(18,59,42,.12)}
+.hero h1{letter-spacing:-.4px}
+.home-search{margin-top:16px}
+.home-kicker{display:inline-flex;align-items:center;gap:6px;background:#ffffff16;border:1px solid #ffffff22;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800;margin-bottom:9px}
+.quick-search-title{font-size:12px;font-weight:900;margin:0 0 7px;color:#e9f4ed}
+.horizontal-scroll{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 7px;scrollbar-width:none}
+.horizontal-scroll::-webkit-scrollbar{display:none}
+.category-mini{min-width:128px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:11px;display:flex;align-items:center;gap:9px;text-align:right;box-shadow:0 3px 12px #00000007}
+.category-mini .cat-icon{width:40px;height:40px;border-radius:12px;font-size:21px;background:var(--green-soft)}
+.category-mini strong{font-size:12px;display:block;line-height:1.35}
+.category-mini small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.section{margin:22px 0}
+.section-head{margin-bottom:10px}
+.section-title{font-size:18px;letter-spacing:-.2px}
+.section-title small{margin-top:1px}
+.section-lead{font-size:11px;color:var(--muted);margin:-5px 0 11px}
+.compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.shop-card-v2{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:0 3px 14px #00000007}
+.shop-card-v2 .shop-thumb{height:92px;background:#e9efeb;position:relative;overflow:hidden}
+.shop-card-v2 .shop-thumb img{width:100%;height:100%;object-fit:cover}
+.shop-card-v2 .shop-logo-float{width:44px;height:44px;border-radius:13px;object-fit:cover;background:#fff;border:3px solid #fff;box-shadow:0 3px 10px #0002;position:absolute;right:10px;bottom:-22px}
+.shop-card-v2 .shop-card-body{padding:26px 11px 11px}
+.shop-card-v2 .shop-card-title{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shop-card-v2 .shop-meta{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shop-card-v2 .shop-status{display:inline-flex;margin-top:7px;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:900;background:var(--green-soft);color:var(--green-2)}
+.shop-card-v2 .shop-status.closed{background:#fff0f0;color:var(--danger)}
+.shop-card-v2 .shop-card-actions{display:grid;grid-template-columns:1fr 34px;gap:6px;margin-top:9px}
+.shop-card-v2 .shop-card-actions .btn{padding:8px 6px}
+.featured-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.featured-shop-card{border-radius:18px}
+.featured-shop-inner{padding:13px}
+.featured-shop-logo{width:54px;height:54px;border-radius:15px}
+.featured-shop-name{font-size:13px}
+.featured-shop-cat{font-size:10px}
+.featured-shop-badge{font-size:9px;padding:4px 7px}
+.featured-shop-delivery{font-size:10px;margin-top:9px}
+.featured-shop-actions{margin-top:8px}
+.product-grid-v2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.product-card-v2{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:0 3px 13px #00000007;position:relative}
+.product-card-v2 .pc-img{height:130px;background:#e9efeb;position:relative;overflow:hidden}
+.product-card-v2 .pc-img img{width:100%;height:100%;object-fit:cover}
+.product-card-v2 .pc-badge{position:absolute;top:8px;right:8px;background:var(--gold);color:var(--green);border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900}
+.product-card-v2 .pc-body{padding:10px}
+.product-card-v2 .pc-name{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-card-v2 .pc-shop{font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-card-v2 .pc-price{font-size:16px;font-weight:900;color:var(--green-2);margin-top:5px}
+.product-card-v2 .pc-price .old-price{font-size:9px}
+.product-card-v2 .pc-actions{display:grid;grid-template-columns:1fr 34px;gap:5px;margin-top:8px}
+.product-card-v2 .pc-actions.offer-actions{grid-template-columns:1fr 1fr 34px}
+.product-card-v2 .pc-actions .btn{padding:8px 4px;font-size:10px}
+.filter-strip{display:flex;gap:6px;overflow-x:auto;padding:3px 0 7px;scrollbar-width:none}
+.filter-strip::-webkit-scrollbar{display:none}
+.filter-pill{white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--green);border-radius:999px;padding:7px 11px;font-size:10px;font-weight:900}
+.filter-pill.active{background:var(--green);color:#fff;border-color:var(--green)}
+.shop-searchbox{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:5px;margin:10px 0}
+.shop-searchbox input{flex:1;min-width:0;border:0;outline:0;padding:8px 9px;background:transparent}
+.shop-tools{background:#f7f9f7;border:1px solid var(--line);border-radius:16px;padding:9px}
+.shop-tools-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.shop-tools-title{font-size:11px;font-weight:900}
+.shop-tools select{border:1px solid var(--line);border-radius:10px;padding:7px 8px;background:#fff;color:var(--green);font-size:10px;font-weight:800}
+.open-now{display:inline-flex;align-items:center;gap:4px}
+.open-dot{width:7px;height:7px;border-radius:50%;background:#2f9b5e;display:inline-block}
+.open-dot.closed{background:#b93636}
+.detail-cover{height:190px}
+.detail-info{padding:15px}
+.detail-title{font-size:22px}
+.action-row{grid-template-columns:repeat(3,1fr);gap:6px}
+.action-row .btn{font-size:9px;padding:9px 4px}
+.dashboard-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:13px}
+.dashboard-stat{background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px}
+.dashboard-stat b{display:block;font-size:21px;color:var(--green)}
+.dashboard-stat span{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.owner-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
+.owner-nav .tab{padding:9px 5px;font-size:10px}
+.admin-nav{padding-bottom:3px}
+.form-card{border-radius:18px}
+.table-wrap{border-radius:14px}
+.table{font-size:11px}
+.table th,.table td{padding:9px}
+.confirm-delete{background:#fff0f0;border:1px solid #efcaca;color:#7a2525;border-radius:14px;padding:13px;font-size:12px}
+.offer-highlight{background:linear-gradient(135deg,#fff9e7,#fff);border:1px solid #ead7a0;border-radius:16px;padding:11px;margin-bottom:10px}
+.offer-price-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.offer-new-price{font-size:19px;font-weight:900;color:var(--green)}
+.offer-old-price{text-decoration:line-through;color:#8b918c;font-size:10px}
+.expiry-note{font-size:9px;color:#80631d;background:#fff5d9;border-radius:999px;padding:4px 7px;display:inline-flex;margin-top:6px}
+@media(min-width:600px){
+  .compact-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .product-grid-v2{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboard-stats{grid-template-columns:repeat(4,1fr)}
+  .owner-nav{display:flex}
+}
+@media(min-width:900px){
+  .compact-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .product-grid-v2{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .featured-shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .detail-cover{height:230px}
+}
+@media(max-width:599px){
+  .header-btn{padding:0 9px;font-size:10px}
+  .icon-btn{min-width:36px;height:36px}
+  .action-row{grid-template-columns:repeat(3,1fr)}
+  .action-row .btn{white-space:normal}
+}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<div id="modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div id="modalBox" class="modal-box"></div></div>
+<div id="datePickerOverlay" class="modal" aria-hidden="true" role="dialog" aria-modal="true"><div id="datePickerBox" class="modal-box"></div></div>
+<div id="toast" class="toast"></div><button id="installFab" class="install-fab" type="button" onclick="requestAppInstall()">📲 تحميل التطبيق</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+  import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyARzEXFXfFva7XL9mRhszN_3JnhMpjIVhw",
+    authDomain: "aleesshoping-p.firebaseapp.com",
+    projectId: "aleesshoping-p",
+    storageBucket: "aleesshoping-p.firebasestorage.app",
+    messagingSenderId: "1043745589247",
+    appId: "1:1043745589247:web:2974116c87b27ebf0ac9ca"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.__AIS_FIREBASE__ = { app, db, collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch };
+    window.dispatchEvent(new CustomEvent('firebase-ready'));
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    window.__AIS_FIREBASE_ERROR__ = error;
+    window.dispatchEvent(new CustomEvent('firebase-error', { detail: error }));
+  }
+</script>
+<script>
+// @ts-nocheck
+'use strict';
+
+/* =========================
+   DATA LAYER — Local Prototype
+   ========================= */
+const categories = [
+  {id:'restaurants',name:'المطاعم والوجبات السريعة',icon:'🍔'},
+  {id:'butchers',name:'الملاحم ومحلات الدجاج',icon:'🥩'},
+  {id:'produce',name:'الخضار والفواكه',icon:'🥬'},
+  {id:'bakery',name:'المخابز والحلويات',icon:'🥖'},
+  {id:'fashion',name:'الملابس والأحذية',icon:'👕'},
+  {id:'perfume',name:'العطور والإكسسوارات والهدايا',icon:'💄'},
+  {id:'stationery',name:'المكتبات والقرطاسية',icon:'📚'},
+  {id:'electronics',name:'الهواتف والإلكترونيات',icon:'📱'}
+];
+
+const localDB = {
+  users: [
+    {id:'owner1',name:'صاحب محل تجريبي',email:'owner@example.com',role:'shop_owner',status:'active',password:'123456'},
+    {id:'admin1',name:'مدير النظام',email:'admin@example.com',role:'admin',status:'active',password:'123456'}
+  ],
+  shops: [
+    {shopId:'s1',ownerId:'owner1',shopName:'مطاعم العيص للوجبات',description:'وجبات سريعة ومشاوي بطابع محلي.',categoryId:'restaurants',logo:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',coverImage:'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1000&q=80',phone:'0790000001',whatsapp:'0790000001',address:'العيص، محافظة الطفيلة، الأردن',mapUrl:'https://www.google.com/maps/search/?api=1&query=30.706,35.598',workingHours:'10:00 صباحاً - 11:00 مساءً',status:'active',isVisible:true,isFeatured:true,featuredStartAt:'2026-01-01',featuredEndAt:'2027-12-31',createdAt:'2026-01-01',updatedAt:'2026-09-01',deletedAt:null,searchKeywords:['مطاعم','وجبات','مشاوي','العيص'],displayOrder:1},
+    {shopId:'s2',ownerId:'owner2',shopName:'مخبز العيص الحديث',description:'مخبوزات طازجة وحلويات يومية.',categoryId:'bakery',logo:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80',coverImage:'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=1000&q=80',phone:'0790000002',whatsapp:'0790000002',address:'وسط العيص',mapUrl:'https://www.google.com/maps/search/?api=1&query=30.707,35.596',workingHours:'6:00 صباحاً - 10:00 مساءً',status:'active',isVisible:true,isFeatured:true,featuredStartAt:'2026-08-01',featuredEndAt:'2026-10-31',createdAt:'2026-02-01',updatedAt:'2026-09-01',deletedAt:null,searchKeywords:['مخبز','خبز','حلويات','كيك','العيص'],displayOrder:2},
+    {shopId:'s3',ownerId:'owner3',shopName:'العيص فون للإلكترونيات',description:'هواتف، إكسسوارات، وشواحن وأجهزة إلكترونية.',categoryId:'electronics',logo:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=300&q=80',coverImage:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=80',phone:'0790000003',whatsapp:'0790000003',address:'شارع السوق، العيص',mapUrl:'https://www.google.com/maps/search/?api=1&query=30.705,35.601',workingHours:'9:00 صباحاً - 9:00 مساءً',status:'active',isVisible:true,isFeatured:false,featuredStartAt:null,featuredEndAt:null,createdAt:'2026-03-01',updatedAt:'2026-09-01',deletedAt:null,searchKeywords:['هواتف','ايفون','سامسونج','الكترونيات','العيص'],displayOrder:3},
+    {shopId:'s4',ownerId:'owner4',shopName:'خيرات العيص للخضار',description:'خضار وفواكه طازجة يومياً.',categoryId:'produce',logo:'',coverImage:'',phone:'0790000004',whatsapp:'0790000004',address:'السوق الرئيسي - العيص',mapUrl:'https://www.google.com/maps/search/?api=1&query=30.708,35.594',workingHours:'7:00 صباحاً - 10:00 مساءً',status:'pending',isVisible:true,isFeatured:false,featuredStartAt:null,featuredEndAt:null,createdAt:'2026-09-01',updatedAt:'2026-09-01',deletedAt:null,searchKeywords:['خضار','فواكه','طازج','العيص'],displayOrder:4}
+  ],
+  products: [
+    {productId:'p1',shopId:'s1',name:'وجبة برجر العيص',description:'برجر لحم مع بطاطا ومشروب.',image:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80',price:2.5,oldPrice:3.0,isFeatured:true,adminFeatured:true,featuredStartAt:'2026-08-01',featuredEndAt:'2026-12-31',status:'active',createdAt:'2026-01-10',updatedAt:'2026-09-01',deletedAt:null},
+    {productId:'p2',shopId:'s1',name:'صحن مشاوي مشكل',description:'تشكيلة مشاوي مناسبة للمشاركة.',image:'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80',price:6.0,oldPrice:7.0,isFeatured:false,adminFeatured:false,featuredStartAt:null,featuredEndAt:null,status:'active',createdAt:'2026-02-01',updatedAt:'2026-09-01',deletedAt:null},
+    {productId:'p3',shopId:'s2',name:'كيكة عائلية',description:'كيكة طازجة مناسبة للمناسبات.',image:'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=700&q=80',price:8.0,oldPrice:10.0,isFeatured:true,adminFeatured:false,featuredStartAt:'2026-08-15',featuredEndAt:'2026-11-30',status:'active',createdAt:'2026-03-01',updatedAt:'2026-09-01',deletedAt:null},
+    {productId:'p4',shopId:'s3',name:'سماعة لاسلكية',description:'سماعة بلوتوث للاستخدام اليومي.',image:'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80',price:12.0,oldPrice:15.0,isFeatured:true,adminFeatured:false,featuredStartAt:'2026-09-01',featuredEndAt:'2026-10-15',status:'active',createdAt:'2026-04-01',updatedAt:'2026-09-01',deletedAt:null},
+    {productId:'p5',shopId:'s2',name:'خبز عربي طازج',description:'خبز يومي طازج.',image:'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=700&q=80',price:0.35,oldPrice:null,isFeatured:false,adminFeatured:false,featuredStartAt:null,featuredEndAt:null,status:'active',createdAt:'2026-03-01',updatedAt:'2026-09-01',deletedAt:null}
+  ],
+  specialOffers:[
+    {offerId:'ofp1',productId:'p1',shopId:'s1',oldPrice:2.5,newPrice:2.0,startAt:'2026-08-01',endAt:'2026-12-31',status:'active',createdAt:'2026-01-10'},
+    {offerId:'ofp2',productId:'p2',shopId:'s1',oldPrice:6.0,newPrice:5.0,startAt:'2026-08-01',endAt:'2026-12-31',status:'active',createdAt:'2026-02-01'},
+    {offerId:'ofp3',productId:'p3',shopId:'s2',oldPrice:8.0,newPrice:7.0,startAt:'2026-08-15',endAt:'2026-11-30',status:'active',createdAt:'2026-03-01'},
+    {offerId:'ofp4',productId:'p4',shopId:'s3',oldPrice:12.0,newPrice:10.0,startAt:'2026-09-01',endAt:'2026-10-15',status:'active',createdAt:'2026-04-01'}
+  ],
+  categories,
+  promotionRequests:[
+    {requestId:'pr1',shopId:'s1',ownerId:'owner1',targetType:'shop',targetId:'s1',serviceType:'featured_shop',status:'pending',requestedAt:'2026-09-04',reviewedAt:null,reviewedBy:null,startAt:'2026-09-10',endAt:'2026-10-10',price:15,notes:'أرغب بتمييز المحل'}
+  ],
+  advertisements:[
+    {advertisementId:'ad1',title:'أهلاً بكم في سوق العيص الإلكتروني',image:'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',description:'اكتشف محلات العيص وعروضها في مكان واحد.',targetUrl:'#/shops',startAt:'2026-01-01',endAt:'2027-12-31',status:'active',displayOrder:1}
+  ],
+  services:[
+    {shopId:'s1',serviceType:'featured_shop',amount:15,startAt:'2026-08-01',endAt:'2026-09-30',paymentStatus:'demo',notes:'تجربة محلية',createdAt:'2026-08-01',createdBy:'admin1'}
+  ],
+  favorites:[],
+  auditLogs:[]
+};
+
+/* =========================
+   FIRESTORE DATA LAYER — FIRESTORE ONLY / NO STORAGE
+   =========================
+   Firestore is the source of truth for application data.
+   The browser keeps the current state in memory only; localStorage is used
+   only for device/session preferences such as login persistence and device id.
+
+   Images are NOT sent to Firebase Storage. They are resized/compressed in the
+   browser, stored as separate Firestore documents in `media`, and referenced
+   from the owning record as `media://<mediaId>`.
+*/
+const FIRESTORE_COLLECTIONS = [
+  'users','shops','products','specialOffers','categories',
+  'promotionRequests','advertisements','services','auditLogs'
+];
+const FIRESTORE_ID_FIELDS = {
+  users:'id',
+  shops:'shopId',
+  products:'productId',
+  specialOffers:'offerId',
+  categories:'id',
+  promotionRequests:'requestId',
+  advertisements:'advertisementId',
+  services:'serviceId',
+  auditLogs:'logId'
+};
+const IMAGE_FIELDS = ['logo','coverImage','image'];
+const MEDIA_COLLECTION = 'media';
+let firestoreReady=false;
+let firestoreLoading=false;
+let firestoreSyncTimer=null;
+let firestoreSyncPending=false;
+let firestoreInitialLoadDone=false;
+
+function getFirebase(){
+  return window.__AIS_FIREBASE__?.db ? window.__AIS_FIREBASE__ : null;
+}
+
+function firestoreIdFor(name,record,index=0){
+  const field=FIRESTORE_ID_FIELDS[name];
+  let id=field ? record?.[field] : null;
+  if(!id && name==='services'){
+    id='service_'+(record?.shopId||'shop')+'_'+index;
+    if(record)record.serviceId=id;
+  }
+  if(!id)id=name+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  return String(id).replace(/[\\/#?\[\]]/g,'_');
+}
+
+function cleanForFirestore(value){
+  if(value===undefined)return undefined;
+  if(typeof value==='number'&&!Number.isFinite(value))return null;
+  if(Array.isArray(value))return value.map(cleanForFirestore).filter(v=>v!==undefined);
+  if(value&&typeof value==='object'){
+    const out={};
+    Object.entries(value).forEach(([k,v])=>{
+      const c=cleanForFirestore(v);
+      if(c!==undefined)out[k]=c;
+    });
+    return out;
+  }
+  return value;
+}
+
+function mediaIdFor(name,docId,field){
+  return `media_${name}_${docId}_${field}`.replace(/[^A-Za-z0-9_-]/g,'_');
+}
+
+async function ensureFirestoreMedia(dataUrl,mediaId){
+  const fb=getFirebase();
+  if(!fb||!dataUrl||!String(dataUrl).startsWith('data:'))return dataUrl;
+  // Firestore document limit is 1 MiB. Keep the encoded image comfortably below it.
+  if(String(dataUrl).length>800000){
+    throw new Error('الصورة كبيرة جداً بعد الضغط. اختر صورة أصغر.');
+  }
+  const payload={
+    mediaId,
+    dataUrl:String(dataUrl),
+    mimeType:String(dataUrl).match(/^data:([^;,]+)/)?.[1]||'image/jpeg',
+    updatedAt:new Date().toISOString()
+  };
+  await fb.setDoc(
+    fb.doc(fb.db,MEDIA_COLLECTION,mediaId),
+    cleanForFirestore(payload),
+    {merge:true}
+  );
+  return 'media://'+mediaId;
+}
+
+async function prepareFirestoreRecord(name,record,docId){
+  const out=JSON.parse(JSON.stringify(record||{}));
+  for(const field of IMAGE_FIELDS){
+    if(typeof out[field]==='string'&&out[field].startsWith('data:')){
+      out[field]=await ensureFirestoreMedia(out[field],mediaIdFor(name,docId,field));
+    }
+  }
+  if(name==='services'&&!out.serviceId)out.serviceId=docId;
+  out._syncedAt=new Date().toISOString();
+  return cleanForFirestore(out);
+}
+
+async function hydrateFirestoreRecord(record){
+  const fb=getFirebase();
+  if(!fb)return record;
+  const out={...record};
+  for(const field of IMAGE_FIELDS){
+    const ref=out[field];
+    if(typeof ref==='string'&&ref.startsWith('media://')){
+      try{
+        const snap=await fb.getDoc(fb.doc(fb.db,MEDIA_COLLECTION,ref.slice(8)));
+        if(snap.exists())out[field]=snap.data().dataUrl||'';
+        else out[field]='';
+      }catch(e){
+        console.warn('تعذر تحميل صورة Firestore',e);
+      }
+    }
+  }
+  delete out._syncedAt;
+  delete out.__docId;
+  return out;
+}
+
+async function getFirestoreCollectionRecords(name){
+  const fb=getFirebase();
+  if(!fb)return [];
+  const snap=await fb.getDocs(fb.collection(fb.db,name));
+  const rows=[];
+  for(const d of snap.docs){
+    rows.push(await hydrateFirestoreRecord({__docId:d.id,...d.data()}));
+  }
+  return rows;
+}
+
+async function syncFirestoreCollection(name,records){
+  const fb=getFirebase();
+  if(!fb)return;
+  const existing=await fb.getDocs(fb.collection(fb.db,name));
+  const wanted=new Set();
+  const rows=(Array.isArray(records)?records:[]).map((r,i)=>({r,id:firestoreIdFor(name,r,i)}));
+
+  // Firestore batches are limited to 500 writes. Keep a safe margin.
+  let batch=fb.writeBatch(fb.db);
+  let ops=0;
+  const flush=async()=>{
+    if(!ops)return;
+    await batch.commit();
+    batch=fb.writeBatch(fb.db);
+    ops=0;
+  };
+
+  for(const {r,id} of rows){
+    wanted.add(id);
+    const prepared=await prepareFirestoreRecord(name,r,id);
+    batch.set(fb.doc(fb.db,name,id),prepared,{merge:false});
+    ops++;
+    if(ops>=450)await flush();
+  }
+  for(const d of existing.docs){
+    if(!wanted.has(d.id)){
+      batch.delete(d.ref);
+      ops++;
+      if(ops>=450)await flush();
+    }
+  }
+  await flush();
+}
+
+function getDeviceId(){
+  let id=localStorage.getItem('ais_device_id');
+  if(!id){
+    id='dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+    localStorage.setItem('ais_device_id',id);
+  }
+  return id;
+}
+
+async function syncFavoritesToFirestore(){
+  const fb=getFirebase();
+  if(!fb)return;
+  await fb.setDoc(
+    fb.doc(fb.db,'favorites',getDeviceId()),
+    {
+      deviceId:getDeviceId(),
+      items:cleanForFirestore(localDB.favorites||[]),
+      updatedAt:new Date().toISOString()
+    },
+    {merge:true}
+  );
+}
+
+async function loadFavoritesFromFirestore(){
+  const fb=getFirebase();
+  if(!fb)return;
+  const snap=await fb.getDoc(fb.doc(fb.db,'favorites',getDeviceId()));
+  if(snap.exists()&&Array.isArray(snap.data().items)){
+    localDB.favorites=snap.data().items;
+  }
+}
+
+let firestoreWriteChain=Promise.resolve();
+
+async function syncAllToFirestore(){
+  const fb=getFirebase();
+  if(!fb)return false;
+  firestoreWriteChain=firestoreWriteChain.then(async()=>{
+    for(const name of FIRESTORE_COLLECTIONS){
+      await syncFirestoreCollection(name,localDB[name]||[]);
+    }
+    await syncFavoritesToFirestore();
+    localStorage.setItem('ais_firestore_last_sync',new Date().toISOString());
+    return true;
+  });
+  try{return await firestoreWriteChain;}catch(e){
+    console.error('Firestore sync failed:',e);
+    const code=String(e?.code||'');
+    toast(code.includes('permission-denied')?'Firestore رفض العملية. تحقق من Security Rules.':'تعذر حفظ البيانات في Firestore.','error');
+    return false;
+  }
+}
+
+async function deleteFirestoreRecord(name,id){
+  const fb=getFirebase();
+  if(!fb)throw new Error('Firebase غير متصل');
+  const field=FIRESTORE_ID_FIELDS[name]||'id';
+  const safeId=firestoreIdFor(name,{[field]:id});
+  await fb.deleteDoc(fb.doc(fb.db,name,safeId));
+}
+
+function queueFirestoreSync(){
+  firestoreSyncPending=true;
+  if(!firestoreReady||firestoreLoading||!firestoreInitialLoadDone)return;
+  clearTimeout(firestoreSyncTimer);
+  firestoreSyncTimer=setTimeout(async()=>{
+    if(!firestoreSyncPending||firestoreLoading)return;
+    firestoreSyncPending=false;
+    await syncAllToFirestore();
+  },500);
+}
+
+async function initializeFirestoreData(){
+  const fb=getFirebase();
+  if(!fb||firestoreLoading)return;
+  firestoreLoading=true;
+  try{
+    // Firestore is authoritative. Read every collection first.
+    // An empty collection is valid after deleting its last record; never repopulate it.
+    const remoteByCollection={};
+    let foundAnyRemoteData=false;
+    for(const name of FIRESTORE_COLLECTIONS){
+      const remote=await getFirestoreCollectionRecords(name);
+      remoteByCollection[name]=remote;
+      if(remote.length)foundAnyRemoteData=true;
+    }
+
+    if(!foundAnyRemoteData){
+      // Bootstrap the embedded demo data ONLY when the entire Firestore database is empty.
+      for(const name of FIRESTORE_COLLECTIONS){
+        const starter=Array.isArray(localDB[name])?localDB[name]:[];
+        localDB[name]=starter;
+        if(starter.length)await syncFirestoreCollection(name,starter);
+      }
+    }else{
+      for(const name of FIRESTORE_COLLECTIONS){
+        // Remote Firestore state wins, including an intentionally empty collection.
+        localDB[name]=remoteByCollection[name];
+      }
+    }
+
+    await loadFavoritesFromFirestore();
+    if(!foundAnyRemoteData)await syncFavoritesToFirestore();
+
+    firestoreInitialLoadDone=true;
+    firestoreSyncPending=false;
+    localStorage.setItem('ais_firestore_mode','firestore-only-test-mode');
+    render();
+    toast('تم الاتصال بـ Firestore وتحميل البيانات');
+  }catch(e){
+    console.error('Firestore initialization failed:',e);
+    const code=String(e?.code||'');
+    if(code.includes('permission-denied'))toast('تم تشغيل التطبيق، لكن Firestore يمنع القراءة/الكتابة. تحقق من Security Rules.','error');
+    else toast('تعذر الاتصال بـ Firestore. تحقق من المشروع والقواعد.','error');
+  }finally{
+    firestoreLoading=false;
+  }
+}
+
+window.addEventListener('firebase-ready',()=>{
+  firestoreReady=true;
+  initializeFirestoreData();
+});
+window.addEventListener('firebase-error',()=>{
+  toast('تعذر تشغيل Firebase. تحقق من إعدادات المشروع.','error');
+});
+
+// Application data is intentionally NOT restored from localStorage.
+// Firestore is the source of truth. localStorage remains only for device/session state.
+try{
+  localDB.favorites=[];
+}catch(e){
+  localDB.favorites=[];
+}
+
+function persistDemoData(){
+  // Keep the old function name so the rest of the app remains compatible.
+  // It now means: schedule a Firestore persistence operation.
+  queueFirestoreSync();
+}
+
+// Migrate legacy embedded offers in the in-memory starter data once, before the
+// first Firestore upload. This migration is harmless when Firestore already has data.
+if(!Array.isArray(localDB.specialOffers))localDB.specialOffers=[];
+if(localDB.specialOffers.length===0){
+  localDB.products.forEach(p=>{
+    if(p.isSpecialOffer&&p.hasOffer&&p.offerStartAt){
+      localDB.specialOffers.push({
+        offerId:'of'+p.productId,
+        productId:p.productId,
+        shopId:p.shopId,
+        startAt:p.offerStartAt,
+        endAt:p.offerEndAt||p.offerStartAt,
+        status:'active',
+        createdAt:p.createdAt||new Date().toISOString().slice(0,10)
+      });
+    }
+  });
+}
+localDB.products.forEach(p=>{
+  delete p.hasOffer;
+  delete p.isSpecialOffer;
+  delete p.offerStartAt;
+  delete p.offerEndAt;
+});
+localDB.products.forEach(p=>{
+  if(typeof p.adminFeatured!=='boolean')p.adminFeatured=false;
+  if(typeof p.isFeatured!=='boolean')p.isFeatured=false;
+  delete p.oldPrice;
+});
+localDB.specialOffers.forEach(o=>{
+  if(o.oldPrice==null){
+    const p=localDB.products.find(x=>x.productId===o.productId);
+    o.oldPrice=p?.price??null;
+  }
+  if(o.newPrice==null)o.newPrice=o.oldPrice;
+});
+localDB.shops.forEach(s=>{
+  ['viewsCount','whatsappClicks','phoneClicks','mapClicks','shareCount'].forEach(k=>delete s[k]);
+});
+localDB.products.forEach(p=>{
+  ['viewsCount','whatsappClicks'].forEach(k=>delete p[k]);
+});
+
+/* =========================
+   STATE / ROUTER
+   ========================= */
+const State = {
+  route:{name:'home',params:{}},
+  query:'',
+  currentUser:null,
+  ownerTab:'overview',
+  adminTab:'overview',
+  adminUnlocked:false,
+  filters:{category:''},
+  lastViewedRoute:''
+};
+
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const jsq = v => esc(JSON.stringify(String(v ?? '')));
+const safeUrl = v => { const u=String(v??'').trim(); if(!u)return '#'; if(u.startsWith('#/'))return u; try { const x=new URL(u,location.href); return ['http:','https:'].includes(x.protocol)?x.href:'#'; } catch(e){ return '#'; } };
+const goBack = fallback => { if(history.length>1){ history.back(); } else setRoute(fallback||'home'); };
+const today = () => new Date().toISOString().slice(0,10);
+const validPeriod = (start,end) => (!start || start<=today()) && (!end || end>=today());
+const catById = id => localDB.categories.find(c=>c.id===id);
+const shopById = id => localDB.shops.find(s=>s.shopId===id);
+const productById = id => localDB.products.find(p=>p.productId===id);
+const isPublicShop = s => s && ['approved','active'].includes(s.status) && s.isVisible !== false && !s.deletedAt;
+const isActiveProduct = p => p && p.status==='active' && !p.deletedAt;
+const isFeatured = x => x && x.isFeatured && validPeriod(x.featuredStartAt,x.featuredEndAt);
+const isAdminFeaturedProduct = x => x && x.adminFeatured && validPeriod(x.adminFeaturedStartAt,x.adminFeaturedEndAt);
+const activeOwnerFeaturedProductForShop = shopId => localDB.products.find(p=>p.shopId===shopId&&p.status!=='deleted'&&p.isFeatured&&!p.deletedAt);
+const imgOrPlaceholder = (url,label='صورة') => url ? `<img src="${esc(url)}" alt="${esc(label)}" loading="lazy" decoding="async" width="800" height="450" onerror="this.parentElement.innerHTML='<div class=&quot;placeholder&quot;>لا توجد صورة</div>'">` : `<div class="placeholder">${esc(label)}</div>`;
+
+function setRoute(name,params={}){
+  State.route={name,params};
+  const q = Object.keys(params).length ? '&'+Object.entries(params).map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&') : '';
+  location.hash = '#/'+name+q;
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function parseRoute(){
+  const raw=location.hash.replace(/^#\/?/,'')||'home';
+  const [path,...pairs]=raw.split('&');
+  const parts=path.split('/').filter(Boolean);
+  const params={};
+  pairs.forEach(x=>{const [k,v]=x.split('=');if(k)params[decodeURIComponent(k)]=decodeURIComponent(v||'')});
+  State.route={name:parts.join('/')||'home',params};
+}
+window.addEventListener('hashchange',()=>{parseRoute();render()});
+
+/* =========================
+   UTILITIES / ANALYTICS
+   ========================= */
+function toast(msg,type='success'){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window.__toast); window.__toast=setTimeout(()=>t.classList.remove('show'),2500);
+}
+function audit(action,targetType,targetId,metadata={}){
+  localDB.auditLogs.unshift({logId:'log'+Date.now()+Math.random(),actorId:State.currentUser?.id||'guest',action,targetType,targetId,timestamp:new Date().toISOString(),metadata});
+  queueFirestoreSync();
+}
+function saveFavorites(){
+  try{localStorage.setItem('ais_favorites',JSON.stringify(localDB.favorites));}catch(e){}
+  queueFirestoreSync();
+}
+function isFav(type,id){return localDB.favorites.some(f=>f.type===type&&f.id===id)}
+function toggleFav(type,id){
+  const i=localDB.favorites.findIndex(f=>f.type===type&&f.id===id);
+  if(i>=0){localDB.favorites.splice(i,1);toast('تمت الإزالة من المفضلة');}
+  else {localDB.favorites.push({type,id,addedAt:new Date().toISOString()});toast('تمت الإضافة إلى المفضلة');}
+  saveFavorites(); render();
+}
+function whatsapp(number,message){
+  if(!number){toast('لا يوجد رقم WhatsApp لهذا العنصر','error');return}
+  const digits=String(number).replace(/[^\d]/g,'');
+  const normalized=digits.startsWith('00')?digits.slice(2):digits;
+  window.open('https://wa.me/'+normalized+'?text='+encodeURIComponent(message),'_blank');
+}
+function callShop(shop){
+  if(!shop.phone){toast('لا يوجد رقم اتصال','error');return}
+  window.location.href='tel:'+shop.phone;
+}
+function openMap(shop){
+  if(!shop?.mapUrl){toast('لم يضف المحل رابط موقع على الخريطة','error');return}
+  const url=safeUrl(shop.mapUrl);
+  if(url==='#'){toast('رابط الخريطة غير صالح','error');return}
+  window.open(url,'_blank','noopener,noreferrer');
+}
+async function shareItem(title,text,url=location.href){
+  try{
+    if(navigator.share) await navigator.share({title,text,url});
+    else {await navigator.clipboard.writeText(url);toast('تم نسخ الرابط');}
+  }catch(e){ if(e.name!=='AbortError') toast('تعذر المشاركة','error'); }
+}
+function activeOffers(){
+  cleanupExpiredOffers();
+  return localDB.specialOffers.map(o=>{const p=productById(o.productId);return p&&isActiveProduct(p)&&isPublicShop(shopById(p.shopId))&&validPeriod(o.startAt,o.endAt)?{...p,_offer:o}:null}).filter(Boolean);
+}
+function cleanupExpiredOffers(){
+  if(!Array.isArray(localDB.specialOffers)) localDB.specialOffers=[];
+  const before=localDB.specialOffers.length;
+  localDB.specialOffers=localDB.specialOffers.filter(o=>!o.endAt || o.endAt>=today());
+  if(before!==localDB.specialOffers.length) persistDemoData();
+}
+function activeOffersForShop(shopId){return activeOffers().filter(p=>p.shopId===shopId)}
+function publicShops(){return localDB.shops.filter(isPublicShop)}
+function publicProducts(){return localDB.products.filter(p=>isActiveProduct(p)&&isPublicShop(shopById(p.shopId)))}
+function searchAll(q){
+  const term=q.trim().toLowerCase();
+  if(!term)return {shops:publicShops(),products:publicProducts()};
+  const shops=publicShops().filter(s=>[s.shopName,s.description,...(s.searchKeywords||[]),catById(s.categoryId)?.name].join(' ').toLowerCase().includes(term));
+  const products=publicProducts().filter(p=>[p.name,p.description,shopById(p.shopId)?.shopName,catById(shopById(p.shopId)?.categoryId)?.name].join(' ').toLowerCase().includes(term));
+  return {shops,products};
+}
+
+/* =========================
+   SHOP CART / WHATSAPP ORDERING
+   ========================= */
+function cartKey(shopId){return 'ais_cart_'+shopId;}
+function getShopCart(shopId){
+  try{const c=JSON.parse(localStorage.getItem(cartKey(shopId))||'[]');return Array.isArray(c)?c:[];}catch(e){return []}
+}
+function saveShopCart(shopId,cart){
+  try{if(cart.length)localStorage.setItem(cartKey(shopId),JSON.stringify(cart));else localStorage.removeItem(cartKey(shopId));}catch(e){console.warn('تعذر حفظ السلة',e)}
+}
+function cartItemsCount(shopId){return getShopCart(shopId).reduce((n,x)=>n+Number(x.qty||0),0)}
+function cartTotal(shopId){return getShopCart(shopId).reduce((n,x)=>n+(Number(x.price)||0)*Number(x.qty||0),0)}
+function addToShopCart(shopId,productId,qty=1){
+  const shop=shopById(shopId),p=productById(productId);
+  if(!shop||!p||p.shopId!==shopId||!isActiveProduct(p)||!isPublicShop(shop)){toast('المنتج غير متاح','error');return}
+  const offer=activeOffersForShop(shopId).find(x=>x.productId===productId)?._offer||null;
+  const price=offer?.newPrice!=null?Number(offer.newPrice):Number(p.price);
+  if(!Number.isFinite(price)){toast('سعر المنتج غير صالح','error');return}
+  const cart=getShopCart(shopId), existing=cart.find(x=>x.productId===productId);
+  if(existing){existing.qty=Math.min(99,Number(existing.qty||0)+Math.max(1,Number(qty)||1));existing.price=price;existing.name=p.name;existing.image=p.image||'';existing.offer=offer?{oldPrice:Number(offer.oldPrice),newPrice:Number(offer.newPrice),startAt:offer.startAt,endAt:offer.endAt}:null;}
+  else cart.push({productId:p.productId,name:p.name,image:p.image||'',price,qty:Math.min(99,Math.max(1,Number(qty)||1)),offer:offer?{oldPrice:Number(offer.oldPrice),newPrice:Number(offer.newPrice),startAt:offer.startAt,endAt:offer.endAt}:null});
+  saveShopCart(shopId,cart);toast('تمت إضافة المنتج إلى السلة');renderShopCart(shopId);
+}
+function changeCartQty(shopId,productId,delta){
+  const cart=getShopCart(shopId),item=cart.find(x=>x.productId===productId);if(!item)return;
+  item.qty=Math.min(99,Math.max(0,Number(item.qty||0)+delta));
+  const next=cart.filter(x=>x.qty>0);saveShopCart(shopId,next);renderShopCart(shopId);
+}
+function removeCartItem(shopId,productId){saveShopCart(shopId,getShopCart(shopId).filter(x=>x.productId!==productId));renderShopCart(shopId)}
+function clearShopCart(shopId){saveShopCart(shopId,[]);renderShopCart(shopId)}
+function openShopCart(shopId){renderShopCart(shopId);document.getElementById('cartOverlay')?.classList.add('show')}
+function closeShopCart(){document.getElementById('cartOverlay')?.classList.remove('show')}
+function cartMessage(shopId){
+  const shop=shopById(shopId),cart=getShopCart(shopId);if(!shop||!cart.length)return '';
+  let msg=`مرحباً، أريد إرسال طلب من محل ${shop.shopName}.%0A%0Aتفاصيل الطلب:%0A`;
+  msg=decodeURIComponent(msg);
+  cart.forEach((x,i)=>{
+    msg+=`${i+1}) ${x.name} — العدد: ${x.qty} — السعر للوحدة: ${Number(x.price).toFixed(2)} د.أ — المجموع: ${(Number(x.price)*Number(x.qty)).toFixed(2)} د.أ\n`;
+    if(x.offer)msg+=`   عرض خاص: السعر القديم ${x.offer.oldPrice.toFixed(2)} د.أ، السعر الجديد ${x.offer.newPrice.toFixed(2)} د.أ، من ${x.offer.startAt} إلى ${x.offer.endAt}\n`;
+  });
+  msg+=`\nعدد القطع: ${cartItemsCount(shopId)}\nالمجموع الكلي: ${cartTotal(shopId).toFixed(2)} د.أ\n\nأرجو تأكيد الطلب والتواصل معي عبر WhatsApp.`;
+  return msg;
+}
+function sendShopCart(shopId){
+  const shop=shopById(shopId),cart=getShopCart(shopId);if(!shop||!cart.length){toast('السلة فارغة','error');return}
+  const number=shop.whatsapp||shop.phone;if(!number){toast('لا يوجد رقم WhatsApp لهذا المحل','error');return}
+  const message=cartMessage(shopId);whatsapp(number,message);saveShopCart(shopId,[]);closeShopCart();toast('تم إرسال الطلب وتفريغ السلة');render();
+}
+function shopCartUI(shopId){
+  const count=cartItemsCount(shopId);
+  return `<button class="cart-fab" onclick="openShopCart('${esc(shopId)}')" aria-label="سلة التسوق">🛒 السلة <span class="cart-count" id="cartCount">${count}</span></button>
+  <div id="cartOverlay" class="cart-overlay" onclick="if(event.target===this)closeShopCart()"><div id="cartPanel" class="cart-panel"></div></div>`;
+}
+function renderShopCart(shopId){
+  const panel=document.getElementById('cartPanel');if(!panel)return;
+  const shop=shopById(shopId),cart=getShopCart(shopId);
+  panel.innerHTML=`<div class="modal-head"><h2>🛒 سلة ${esc(shop?.shopName||'المحل')}</h2><button class="close" onclick="closeShopCart()">×</button></div>${cart.length?cart.map(x=>`<div class="cart-item"><img src="${esc(x.image||'')}" alt="${esc(x.name)}" onerror="this.style.visibility='hidden'"><div><b>${esc(x.name)}</b>${x.offer?`<div class="meta">عرض خاص: ${x.offer.oldPrice.toFixed(2)} ← ${x.offer.newPrice.toFixed(2)} د.أ</div>`:''}<div class="meta">${Number(x.price).toFixed(2)} د.أ × ${x.qty} = ${(Number(x.price)*Number(x.qty)).toFixed(2)} د.أ</div></div><div class="qty"><button onclick="changeCartQty('${esc(shopId)}','${esc(x.productId)}',1)">+</button><b>${x.qty}</b><button onclick="changeCartQty('${esc(shopId)}','${esc(x.productId)}',-1)">−</button></div></div>`).join('')+`<div class="cart-total"><span>عدد القطع</span><span>${cartItemsCount(shopId)}</span></div><div class="cart-total"><span>المجموع الكلي</span><span>${cartTotal(shopId).toFixed(2)} د.أ</span></div><div class="cart-note">سيتم إرسال تفاصيل كل المنتجات والأسعار والعروض إلى WhatsApp الخاص بهذا المحل. بعد الإرسال تُفرّغ السلة تلقائياً.</div><div class="product-actions"><button class="btn danger" onclick="clearShopCart('${esc(shopId)}')">تفريغ السلة</button><button class="btn full" onclick="sendShopCart('${esc(shopId)}')">📤 إرسال الطلب عبر WhatsApp</button></div>`:`<div class="empty">السلة فارغة حالياً.<br><span class="muted">اختر المنتجات من هذا المحل لإضافتها إلى السلة.</span></div>`}`;
+}
+
+/* =========================
+   SHARED COMPONENTS
+   ========================= */
+function header(){
+  return `<header class="topbar"><div class="container topbar-inner">
+    <a class="brand" href="#/home"><img class="brand-mark" src="1000169352.png" alt="شعار سوق العيص" loading="eager" onerror="this.style.display='none'"><div><div class="brand-title">سوق العيص الإلكتروني</div><div class="brand-sub">كل ما تحتاجه من محلات العيص في مكان واحد</div></div></a>
+    <div class="header-actions">
+      <button class="icon-btn" title="المفضلة" aria-label="المفضلة" onclick="setRoute('favorites')">♡</button>
+      <button class="icon-btn" title="لوحة الإدارة" aria-label="لوحة الإدارة" onclick="setRoute('admin')">⚙</button>
+      <button class="header-btn" onclick="setRoute('login')">دخول أصحاب المحلات</button>
+    </div>
+  </div></header>`;
+}
+function page(title,body,back=true){
+  return `${header()}<main><div class="container">${back?`<button class="back" onclick="goBack('home')">← رجوع</button>`:''}${body}</div></main>${bottomNav()}`;
+}
+function section(title,body,link=''){
+  return `<section class="section"><div class="section-head"><h2 class="section-title">${title}</h2>${link?`<button class="link-btn" onclick="${link}">عرض الكل ←</button>`:''}</div>${body}</section>`;
+}
+function bottomNav(){
+  const r=State.route.name;
+  const activeHome=r==='home'?'active':'';
+  const activeCategories=r.startsWith('category')||r==='categories'?'active':'';
+  const activeSearch=r==='search'?'active':'';
+  const activeFavorites=r==='favorites'?'active':'';
+  return `<nav class="bottom-nav public-bottom-nav"><button class="nav-item ${activeHome}" onclick="setRoute('home')"><span>⌂</span>الرئيسية</button><button class="nav-item ${activeCategories}" onclick="setRoute('categories')"><span>▦</span>التصنيفات</button><button class="nav-item ${activeSearch}" onclick="setRoute('search')"><span>⌕</span>البحث</button><button class="nav-item ${activeFavorites}" onclick="setRoute('favorites')"><span>♡</span>المفضلة</button></nav>`;
+}
+function shopCard(s){
+  const c=catById(s.categoryId);
+  return `<article class="card">
+    <div class="shop-featured-head" onclick="setRoute('shop',{id:'${esc(s.shopId)}')" style="height:42px;background:linear-gradient(135deg,#f8f1d5,#fff);position:relative">${isFeatured(s)?'<span class="offer-ribbon">مميز</span>':''}</div>
+    <div class="shop-body">
+      ${imgOrPlaceholder(s.logo,s.shopName).replace('class="placeholder"','class="placeholder shop-logo"')}
+      <div class="shop-name">${esc(s.shopName)}</div>
+      <div class="meta">${c?.icon||''} ${esc(c?.name||'')}</div>
+      
+      <div class="product-actions"><button class="btn small full" onclick="setRoute('shop',{id:'${esc(s.shopId)}'})">فتح المحل</button><button class="btn small secondary" onclick="toggleFav('shop','${esc(s.shopId)}')">${isFav('shop',s.shopId)?'♥':'♡'}</button></div>
+    </div>
+  </article>`;
+}
+function featuredShopCard(s){
+  const c=catById(s.categoryId);
+  return `<article class="featured-shop-card"><div class="featured-shop-inner">
+    <div class="featured-shop-top">
+      ${s.logo?`<img class="featured-shop-logo" src="${esc(s.logo)}" alt="${esc(s.shopName)}" loading="lazy">`:`<div class="placeholder featured-shop-logo">${esc(s.shopName)}</div>`}
+      <div style="min-width:0"><div class="featured-shop-name">${esc(s.shopName)}</div><div class="featured-shop-cat">${c?.icon||''} ${esc(c?.name||'')}</div></div>
+      <span class="featured-shop-badge">⭐ مميز</span>
+    </div>
+    <div class="featured-shop-delivery">${s.hasDelivery?'✅ يوجد خدمة توصيل 🚕':'❌ لا يوجد خدمة توصيل 🚕'}</div>
+    <div class="featured-shop-actions"><button class="btn small full" onclick="setRoute('shop',{id:'${esc(s.shopId)}'})">فتح المحل</button><button class="btn small secondary" onclick="toggleFav('shop','${esc(s.shopId)}')">${isFav('shop',s.shopId)?'♥ مفضلة':'♡ مفضلة'}</button></div>
+  </div></article>`;
+}
+
+function offerQuickOrder(productId){
+  const p=productById(productId),s=p&&shopById(p.shopId);
+  if(!p||!s)return;
+  const offer=activeOffers().find(x=>x.productId===productId)?._offer;
+  if(!offer){toast('العرض الخاص غير متاح حالياً','error');return}
+  const price=Number(offer.newPrice);
+  const message=
+    `مرحباً، أريد طلب/الاستفسار عن العرض الخاص:\n`+
+    `المنتج: ${p.name}\n`+
+    `المحل: ${s.shopName}\n`+
+    `السعر القديم: ${Number(offer.oldPrice).toFixed(2)} د.أ\n`+
+    `السعر الجديد: ${price.toFixed(2)} د.أ\n`+
+    `الفترة: من ${offer.startAt} إلى ${offer.endAt}`;
+  $('#modalBox').innerHTML=`
+    <div class="modal-head">
+      <h2>طلب الآن</h2>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <p>اختر طريقة التواصل لطلب أو الاستفسار عن هذا العرض:</p>
+    <div class="product-actions" style="display:grid;gap:10px">
+      <button class="btn full" onclick="whatsapp(${jsq(s.whatsapp||s.phone)},${jsq(message)});closeModal()">💬 واتساب</button>
+      <button class="btn secondary full" onclick="callShop(shopById('${esc(s.shopId)}'));closeModal()">📞 مكالمة هاتفية</button>
+    </div>`;
+  openModal();
+}
+
+function productCard(p,cartMode=false){
+  const s=shopById(p.shopId);
+  const offer=p._offer;
+  const currentPrice=offer?.newPrice!=null?Number(offer.newPrice):Number(p.price);
+  const oldPrice=offer?.oldPrice!=null?Number(offer.oldPrice):null;
+  return `<article class="card">
+    <div class="product-img" onclick="setRoute('product',{id:'${esc(p.productId)}'})">${imgOrPlaceholder(p.image,p.name)}${offer?'<span class="offer-ribbon">🔥 عرض</span>':''}</div>
+    <div class="product-body">
+      <div class="product-name">${esc(p.name)}</div><div class="meta">${esc(s?.shopName||'')}</div>
+      <div class="price">${currentPrice.toFixed(2)} د.أ ${oldPrice!=null?`<span class="old-price">${oldPrice.toFixed(2)} د.أ</span>`:''}</div>
+      <div class="product-actions">
+        <button class="btn small full" onclick="setRoute('product',{id:'${esc(p.productId)}'})">التفاصيل</button>
+        ${offer ? `<button class="btn small gold" onclick="offerQuickOrder('${esc(p.productId)}')">📦 طلب الآن</button>` : ''}
+        ${cartMode && !offer ? `<button class="btn small gold" onclick="addToShopCart('${esc(p.shopId)}','${esc(p.productId)}',1)">🛒 ضع بالسلة</button>` : ''}
+        ${cartMode && offer ? `<button class="btn small gold" onclick="addToShopCart('${esc(p.shopId)}','${esc(p.productId)}',1)">🛒 ضع بالسلة</button>` : ''}
+        <button class="btn small secondary" onclick="toggleFav('product','${esc(p.productId)}')">${isFav('product',p.productId)?'♥':'♡'}</button>
+      </div>
+    </div>
+  </article>`;
+}
+function categoryCards(){
+  return `<div class="grid grid-cats">${categories.map(c=>`<button class="category-card" onclick="setRoute('category',{id:'${c.id}'})"><span class="cat-icon">${c.icon}</span><span><strong>${c.name}</strong><span>${publicShops().filter(s=>s.categoryId===c.id).length} محلات</span></span></button>`).join('')}</div>`;
+}
+
+/* =========================
+   PAGES
+   ========================= */
+function home(){
+  const featuredShops=publicShops().filter(isFeatured).slice(0,6);
+  const offers=activeOffers().slice(0,6);
+  const featuredProducts=publicProducts().filter(isFeatured).slice(0,6);
+  const active=publicShops().slice(0,6);
+  const ads=localDB.advertisements.filter(a=>a.status==='active'&&validPeriod(a.startAt,a.endAt)).sort((a,b)=>a.displayOrder-b.displayOrder);
+  return page('',`
+    <div class="hero">
+      <h1>سوق العيص الإلكتروني</h1><p>كل ما تحتاجه من محلات العيص في مكان واحد</p>
+      <form class="searchbox" onsubmit="event.preventDefault();State.query=this.q.value;setRoute('search',{q:this.q.value})"><input name="q" value="${esc(State.query)}" placeholder="ابحث عن محل أو منتج أو تصنيف..."><button>بحث</button></form>
+    </div>
+    ${ads.length?section('الإعلانات النشطة',`<div class="grid">${ads.slice(0,2).map(a=>`<article class="banner" onclick="window.open(safeUrl('${jsq(a.targetUrl||'#')}'),'_blank','noopener,noreferrer')">${a.image?`<img src="${esc(a.image)}" alt="${esc(a.title)}">`:''}<div class="banner-body"><b>${esc(a.title)}</b><div class="meta">${esc(a.description)}</div></div></article>`).join('')}</div>`):''}
+    
+<div class="section">
+<button class="btn full" onclick="document.getElementById('offersBox').classList.toggle('hidden')">🔥 العروض الخاصة ▼</button>
+<div id="offersBox" class="hidden" style="margin-top:10px">${offers.length?`<div class="grid grid-products">${offers.map(p=>productCard(p,false)).join('')}</div>`:`<div class="empty">لا توجد عروض حالياً</div>`}</div>
+</div>
+
+${featuredProducts.length?`<div class="section">
+<button class="btn full gold" onclick="document.getElementById('featuredProductsBox').classList.toggle('hidden')">⭐ المنتجات المميزة ▼</button>
+<div id="featuredProductsBox" class="hidden" style="margin-top:10px"><div class="grid grid-products">${featuredProducts.map(productCard).join('')}</div></div>
+</div>`:''}
+
+${section('المحلات المميزة',featuredShops.length?`<div class="featured-shop-grid">${featuredShops.map(featuredShopCard).join('')}</div>`:`<div class="empty">لا توجد محلات مميزة حالياً</div>`,'setRoute("featured-shops")')}
+${section('التصنيفات',categoryCards(),'setRoute("categories")')}
+
+  `,false);
+}
+function categoriesPage(){
+  return page('التصنيفات',`<div class="section"><h1 class="section-title">التصنيفات</h1><p class="muted">اختر أحد التصنيفات.</p>${categoryCards()}</div>`);
+}
+function categoryPage(id){
+  const c=catById(id); if(!c)return notFound();
+  const shops=publicShops().filter(s=>s.categoryId===id);
+  return page(c.name,`
+    <div class="hero" style="padding:22px"><h1>${c.icon} ${esc(c.name)}</h1><p>${shops.length} محلات متاحة حالياً</p></div>
+    ${section('المحلات',shops.length?`<div class="grid grid-shops">${shops.map(shopCard).join('')}</div>`:`<div class="empty">لا توجد محلات حالياً</div>`)}
+  `);
+}
+function shopsPage(){
+  let shops=publicShops(); const cat=State.filters.category;
+  if(cat)shops=shops.filter(s=>s.categoryId===cat);
+  return page('جميع المحلات',`
+    <div class="section-head"><div><h1 class="section-title">جميع المحلات</h1><small class="muted">${shops.length} محل</small></div>
+      <select onchange="State.filters.category=this.value;render()" style="border:1px solid var(--line);border-radius:10px;padding:8px"><option value="">كل التصنيفات</option>${categories.map(c=>`<option value="${c.id}" ${cat===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}</select>
+    </div>
+    ${shops.length?`<div class="grid grid-shops">${shops.map(shopCard).join('')}</div>`:`<div class="empty">لا توجد محلات مطابقة.</div>`}
+  `);
+}
+function featuredShopsPage(){return page('المحلات المميزة',`<h1 class="section-title">المحلات المميزة</h1><p class="muted">يظهر التميز فقط ضمن الفترة المحددة.</p><div class="featured-shop-grid">${publicShops().filter(isFeatured).map(featuredShopCard).join('')||'<div class="empty">لا توجد محلات مميزة حالياً</div>'}</div>`)}
+function featuredProductsPage(){return page('المنتجات المميزة',`<h1 class="section-title">المنتجات المميزة</h1><p class="muted">المنتجات التي اعتمدتها الإدارة كمنتجات مميزة.</p><div class="grid grid-products">${publicProducts().filter(isAdminFeaturedProduct).map(productCard).join('')||'<div class="empty">لا توجد منتجات مميزة حالياً</div>'}</div>`)}
+function offersPage(){return page('العروض الخاصة',`<h1 class="section-title">🔥 عروض خاصة</h1><p class="muted">العروض المنتهية لا تظهر للمستخدم.</p><div class="grid grid-products">${activeOffers().map(productCard).join('')||'<div class="empty">لا توجد عروض حالياً</div>'}</div>`)}
+function shopPage(id){
+  const s=shopById(id); if(!isPublicShop(s))return notFound('المحل غير متاح');
+  const products=publicProducts().filter(p=>p.shopId===id);
+  const offers=activeOffersForShop(id);
+  const offerById=new Map(offers.map(p=>[p.productId,p._offer]));
+  const listedProducts=products.map(p=>offerById.has(p.productId)?{...p,_offer:offerById.get(p.productId)}:p);
+  const featured=listedProducts.filter(p=>isFeatured(p));
+  const rest=listedProducts;
+  return page(s.shopName,`
+    <div class="detail-head">
+      <div class="detail-cover">${imgOrPlaceholder(s.coverImage,s.shopName)}</div>
+      <div class="detail-info">
+        <div class="shop-identity">
+          ${s.logo?`<img class="detail-logo" src="${esc(s.logo)}" alt="${esc(s.shopName)}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=&quot;placeholder detail-logo&quot;>لا توجد صورة</div>'">`:`<div class="placeholder detail-logo">${esc(s.shopName)}</div>`}
+          <div>
+            <div class="detail-title">${esc(s.shopName)} ${isFeatured(s)?'<span class="badge gold">مميز</span>':''}</div>
+            <div class="meta">${catById(s.categoryId)?.icon||''} ${esc(catById(s.categoryId)?.name||'')}</div>
+          </div>
+        </div>
+        <p>${esc(s.description)}</p>
+        <div class="chips"><span class="chip">🕒 ${esc(s.workingHours)}</span><span class="chip">📍 ${esc(s.address)}</span><span class="chip" style="font-weight:900">${s.hasDelivery?'✅ يوجد خدمة توصيل 🚕':'❌ لا يوجد خدمة توصيل 🚕'}</span></div>
+        <div class="action-row"><button class="btn gold" onclick="document.getElementById('shopProducts').scrollIntoView({behavior:'smooth'})"><span class="action-icon">🛍️</span>تسوق الآن</button>
+          <button class="btn" onclick="whatsapp(${jsq(s.whatsapp)},${jsq('مرحباً، أريد الاستفسار عن منتجات وعروض '+s.shopName+'.')})"><span class="action-icon">💬</span>واتساب</button>
+          <button class="btn secondary" onclick="callShop(shopById('${esc(s.shopId)}'))"><span class="action-icon">📞</span>اتصال</button>
+          ${s.mapUrl?`<button class="btn secondary" onclick="openMap(shopById('${esc(s.shopId)}'))"><span class="action-icon">📍</span>الموقع</button>`:''}
+          <button class="btn secondary" onclick="shareItem(${jsq(s.shopName)},${jsq(s.description)},location.href)"><span class="action-icon">↗</span>مشاركة</button>
+          <button class="btn gold" onclick="toggleFav('shop','${esc(s.shopId)}')"><span class="action-icon">${isFav('shop',s.shopId)?'♥':'♡'}</span>مفضلة</button>
+        </div>
+      </div>
+    </div>
+    ${section('🔥 العروض الخاصة',offers.length?`<div id="shopProducts" class="grid grid-products">${offers.map(p=>productCard(p,true)).join('')}</div>`:`<div class="empty">لا توجد عروض خاصة حالياً</div>`)}
+    ${section('⭐ المنتجات المميزة',featured.length?`<div class="grid grid-products">${featured.map(p=>productCard(p,true)).join('')}</div>`:`<div class="empty">لا توجد منتجات مميزة حالياً</div>`)}
+    ${section('منتجات المحل',rest.length?`<div id="shopProducts" class="grid grid-products">${rest.map(p=>productCard(p,true)).join('')}</div>`:`<div id="shopProducts" class="empty">لا توجد منتجات أخرى حالياً</div>`)}
+    ${shopCartUI(s.shopId)}
+  `);
+}
+function productPage(id){
+  const p=productById(id),s=p&&shopById(p.shopId); if(!isActiveProduct(p)||!isPublicShop(s))return notFound('المنتج غير متاح');
+  return page(p.name,`
+    <div class="detail-head"><div class="product-img" style="height:280px">${imgOrPlaceholder(p.image,p.name)}</div>
+      <div class="detail-info"><div class="detail-title">${esc(p.name)}</div><div class="meta">من ${esc(s.shopName)} • ${esc(catById(s.categoryId)?.name||'')}</div>
+      <p>${esc(p.description)}</p>${(()=>{const offer=activeOffers().find(x=>x.productId===p.productId)?._offer;const price=offer?.newPrice!=null?Number(offer.newPrice):Number(p.price);return `<div class="price">${price.toFixed(2)} د.أ ${offer?.oldPrice!=null?`<span class="old-price">${Number(offer.oldPrice).toFixed(2)} د.أ</span>`:''}</div>${offer?'<span class="badge gold">🔥 عرض خاص</span>':''}`})()}
+      ${isFeatured(p)?'<span class="badge gold">مميز</span>':''}
+      <div class="product-actions"><button class="btn full" onclick="whatsapp(${jsq(s.whatsapp)},${jsq('مرحباً، أريد طلب/الاستفسار عن المنتج: '+p.name+' من '+s.shopName+'%0Aالسعر: '+((activeOffers().find(x=>x.productId===p.productId)?._offer?.newPrice!=null?Number(activeOffers().find(x=>x.productId===p.productId)._offer.newPrice):Number(p.price)).toFixed(2))+' د.أ%0A'+(activeOffers().find(x=>x.productId===p.productId)?'عرض خاص — السعر القديم: '+Number(activeOffers().find(x=>x.productId===p.productId)._offer.oldPrice).toFixed(2)+' د.أ، السعر الجديد: '+Number(activeOffers().find(x=>x.productId===p.productId)._offer.newPrice).toFixed(2)+' د.أ، من '+activeOffers().find(x=>x.productId===p.productId)._offer.startAt+' إلى '+activeOffers().find(x=>x.productId===p.productId)._offer.endAt:'') )})">WhatsApp للطلب/الاستفسار</button><button class="btn secondary" onclick="toggleFav('product','${esc(p.productId)}')">${isFav('product',p.productId)?'♥ إزالة':'♡ المفضلة'}</button><button class="btn outline" onclick="setRoute('shop',{id:'${esc(s.shopId)}'})">زيارة المحل</button></div>
+      </div></div>
+  `);
+}
+function searchPage(q=''){
+  const results=searchAll(q||State.query); State.query=q||State.query;
+  return page('البحث',`
+    <form class="searchbox" style="margin-bottom:18px" onsubmit="event.preventDefault();State.query=this.q.value;setRoute('search',{q:this.q.value})"><input name="q" value="${esc(State.query)}" autofocus placeholder="اسم محل، منتج، أو تصنيف..."><button>بحث</button></form>
+    ${State.query?`<p class="muted">نتائج البحث عن: <b>${esc(State.query)}</b></p>`:''}
+    ${section('المحلات',results.shops.length?`<div class="grid grid-shops">${results.shops.map(shopCard).join('')}</div>`:`<div class="empty">لا توجد محلات مطابقة</div>`)}
+    ${section('المنتجات',results.products.length?`<div class="grid grid-products">${results.products.map(productCard).join('')}</div>`:`<div class="empty">لا توجد منتجات مطابقة</div>`)}
+  `);
+}
+function favoritesPage(){
+  const shops=localDB.favorites.filter(x=>x.type==='shop').map(x=>shopById(x.id)).filter(isPublicShop);
+  const products=localDB.favorites.filter(x=>x.type==='product').map(x=>productById(x.id)).filter(p=>isActiveProduct(p)&&isPublicShop(shopById(p.shopId)));
+  return page('المفضلة',`
+    <h1 class="section-title">المفضلة</h1><p class="muted">محلات ومنتجات حفظتها على هذا الجهاز.</p>
+    ${section('المحلات',shops.length?`<div class="grid grid-shops">${shops.map(shopCard).join('')}</div>`:`<div class="empty">لا توجد محلات في المفضلة</div>`)}
+    ${section('المنتجات',products.length?`<div class="grid grid-products">${products.map(productCard).join('')}</div>`:`<div class="empty">لا توجد منتجات في المفضلة</div>`)}
+  `);
+}
+
+/* =========================
+   AUTH / ACCOUNT DEMO
+   ========================= */
+function loginPage(){
+  if(State.currentUser&&State.currentUser.role==='shop_owner'){
+    const s=localDB.shops.find(x=>x.ownerId===State.currentUser.id);
+    return page('دخول أصحاب المحلات',`<div class="form-card center" style="max-width:560px;margin:auto"><div style="font-size:42px">▣</div><h1 class="section-title">أنت مسجل دخول بالفعل</h1><p class="muted">${esc(s?.shopName||State.currentUser.name)} — تم حفظ جلسة صاحب المحل على هذا الجهاز.</p><div class="product-actions"><button class="btn full" onclick="setRoute('account')">دخول إلى حسابي</button><button class="btn secondary full" onclick="setRoute('owner')">لوحة المحل</button><button class="btn danger full" onclick="ownerLogout()">تسجيل الخروج</button></div></div>`);
+  }
+  return page('دخول أصحاب المحلات',`<div class="form-card" style="max-width:520px;margin:auto"><h1 class="section-title">دخول أصحاب المحلات</h1><p class="muted">لا يحتاج زوار الموقع إلى حساب. هذا الدخول مخصص فقط لأصحاب المحلات.</p>
+    <form onsubmit="event.preventDefault();demoLogin(this)"><div class="form-grid"><div class="field"><label>البريد الإلكتروني</label><input name="email" type="email" required autocomplete="email" placeholder="owner@example.com"></div><div class="field"><label>كلمة المرور</label><input name="password" type="password" required autocomplete="current-password" placeholder="123456"></div><label class="chip" style="width:max-content"><input name="remember" type="checkbox"> حفظ تسجيل الدخول على هذا الهاتف</label><button class="btn full">دخول لوحة المحل</button></div></form>
+    <hr><p class="meta">عند تفعيل الحفظ سيبقى تسجيل الدخول محفوظاً حتى تضغط «تسجيل الخروج» بنفسك.</p><button class="btn secondary full" onclick="setRoute('register')">إنشاء حساب محل جديد</button></div>`);
+}
+function ownerLogout(){State.currentUser=null;sessionStorage.removeItem('demo_owner');localStorage.removeItem('ais_owner_login');toast('تم تسجيل الخروج وإزالة الحفظ المحلي');setRoute('home');}
+
+function demoLogin(form){
+  const email=form.email.value.trim().toLowerCase();
+  const u=localDB.users.find(x=>x.email.toLowerCase()===email&&x.role==='shop_owner'&&x.status==='active'&&x.password===form.password.value);
+  if(!u){toast('بيانات دخول صاحب المحل غير صحيحة','error');return}
+  State.currentUser=u;sessionStorage.setItem('demo_owner',u.id);
+  if(form.remember.checked){
+    localStorage.setItem('ais_owner_login',JSON.stringify({ownerId:u.id}));
+    $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">تم الحفظ</h2><button class="close" aria-label="إغلاق" onclick="closeModal()">×</button></div><div class="notice">تم حفظ تسجيل دخول صاحب المحل محلياً على هذا الهاتف. عند فتح الموقع لاحقاً لن تحتاج إلى تسجيل الدخول مرة أخرى من هذا الهاتف ما دام الحفظ المحلي موجوداً.</div><button class="btn full" style="margin-top:12px" onclick="closeModal();setRoute('account')">متابعة إلى حسابي</button>`;
+    openModal();
+  }else{
+    localStorage.removeItem('ais_owner_login');
+    toast('تم تسجيل الدخول بدون حفظ بيانات الدخول');
+    setRoute('account');
+  }
+}
+async function fileToDataUrl(file, options={}){
+  if(!file)throw new Error('لم يتم اختيار صورة');
+  if(!String(file.type||'').startsWith('image/'))throw new Error('الملف المختار ليس صورة');
+  const maxWidth=Math.max(1,Number(options.maxWidth||1400));
+  const maxHeight=Math.max(1,Number(options.maxHeight||1400));
+  const maxChars=Math.max(120000,Number(options.maxChars||820000));
+  let source=null,objectUrl=null;
+  try{
+    if(typeof createImageBitmap==='function')source=await createImageBitmap(file);
+    else{
+      objectUrl=URL.createObjectURL(file);
+      source=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('تعذر قراءة الصورة'));img.src=objectUrl;});
+    }
+    const sw=source.width||source.naturalWidth,sh=source.height||source.naturalHeight;
+    if(!sw||!sh)throw new Error('أبعاد الصورة غير صالحة');
+    const scale=Math.min(1,maxWidth/sw,maxHeight/sh);
+    const w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale));
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('المتصفح لا يدعم معالجة الصور');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(source,0,0,w,h);
+    let quality=Number(options.quality||.78);let data='';
+    for(let i=0;i<6;i++){
+      data=canvas.toDataURL('image/jpeg',Math.min(.9,Math.max(.45,quality)));
+      if(data.length<=maxChars)break;
+      quality-=.07;
+    }
+    if(data.length>maxChars)throw new Error('الصورة كبيرة جداً بعد الضغط. اختر صورة أصغر أو صورة أبسط.');
+    return data;
+  }finally{
+    if(source&&typeof source.close==='function')source.close();
+    if(objectUrl)URL.revokeObjectURL(objectUrl);
+  }
+}
+function adminLoginPage(){
+  return page('لوحة الإدارة',`<div class="form-card admin-login-card" style="max-width:460px;margin:28px auto"><div style="font-size:42px;text-align:center">⚙</div><h1 class="section-title" style="text-align:center">لوحة الإدارة</h1><p class="muted" style="text-align:center">هذه منطقة إدارة منفصلة عن حسابات أصحاب المحلات.</p><form onsubmit="event.preventDefault();unlockAdmin(this)"><div class="field"><label>كلمة مرور الإدارة</label><input name="password" type="password" autocomplete="current-password" required placeholder="أدخل كلمة المرور"></div><button class="btn full" style="margin-top:12px">دخول لوحة الإدارة</button></form></div>`);
+}
+async function unlockAdmin(form){
+  const value=form.password.value;
+  const hash=await sha256(value);
+  if(hash!=='8dc7d23e1b51978c7686804dd4b4e6c41f34b32556831683845a7f68b6ab3a18'){toast('كلمة مرور الإدارة غير صحيحة','error');return}
+  State.adminUnlocked=true;sessionStorage.setItem('admin_unlocked','1');toast('تم فتح لوحة الإدارة');setRoute('admin-panel');
+}
+async function sha256(text){
+  const data=new TextEncoder().encode(text);
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function adminLogout(){State.adminUnlocked=false;sessionStorage.removeItem('admin_unlocked');setRoute('home');toast('تم إغلاق لوحة الإدارة');}
+function registerPage(){
+  return page('إنشاء حساب محل',`<div class="form-card" style="max-width:760px;margin:auto"><h1 class="section-title">إنشاء حساب محل</h1><div class="notice">الحقول المعلّمة بنجمة مطلوبة. صورة الشعار وصورة الغلاف مطلوبتان، بينما رابط الموقع على الخريطة اختياري. بعد الإرسال ينتظر الطلب موافقة الإدارة.</div><form onsubmit="event.preventDefault();demoRegisterShop(this)" style="margin-top:13px"><div class="form-grid two">
+    <div class="field"><label>اسم صاحب المحل *</label><input name="ownerName" required></div>
+    <div class="field"><label>البريد الإلكتروني *</label><input name="email" type="email" required autocomplete="email"></div>
+    <div class="field"><label>كلمة المرور *</label><input name="password" type="password" minlength="6" required autocomplete="new-password"></div>
+    <div class="field"><label>اسم المحل *</label><input name="shopName" required></div>
+    <div class="field"><label>رقم الهاتف *</label><input name="phone" required></div>
+    <div class="field"><label>WhatsApp</label><input name="whatsapp"></div>
+    <div class="field"><label>العنوان *</label><input name="address" required></div>
+    <div class="field"><label>ساعات العمل</label><input name="workingHours"></div>
+    <div class="field"><label>خدمة التوصيل *</label><select name="hasDelivery" required><option value="yes">✅ يوجد خدمة توصيل 🚕</option><option value="no">❌ لا يوجد خدمة توصيل 🚕</option></select></div>
+  </div>
+  <div class="field" style="margin-top:12px"><label>تصنيف المحل *</label><select name="categoryId" required><option value="">اختر تصنيف المحل</option>${categories.map(c=>`<option value="${esc(c.id)}">${c.icon} ${esc(c.name)}</option>`).join('')}</select></div>
+  <div class="field" style="margin-top:12px"><label>رابط موقع المحل على الخريطة (اختياري)</label><input name="mapUrl" type="url" placeholder="https://maps.google.com/..." inputmode="url"><small class="meta">إذا أضفته سيظهر داخل صفحة المحل زر «عرض الموقع على الخريطة».</small></div>
+  <div class="field" style="margin-top:12px"><label>صورة شخصية / شعار المحل *</label><input name="logoFile" type="file" accept="image/*" required onchange="previewFile(this,'registerLogoPreview')"><img id="registerLogoPreview" class="preview hidden" alt="معاينة الشعار"></div>
+  <div class="field" style="margin-top:12px"><label>صورة غلاف المحل *</label><input name="coverFile" type="file" accept="image/*" required onchange="previewFile(this,'registerCoverPreview')"><img id="registerCoverPreview" class="preview hidden" alt="معاينة الغلاف"></div>
+  <div class="field" style="margin-top:12px"><label>وصف المحل</label><textarea name="description" placeholder="نبذة مختصرة عن المحل والخدمات التي يقدمها"></textarea></div>
+  <button class="btn full" style="margin-top:12px">إرسال طلب إنشاء المحل</button></form></div>`);
+}
+async function demoRegisterShop(f){
+  const email=f.email.value.trim().toLowerCase();
+  if(localDB.users.some(u=>u.email===email)){toast('البريد الإلكتروني مستخدم مسبقاً','error');return}
+  if(!f.logoFile.files?.[0] || !f.coverFile.files?.[0]){toast('يجب إضافة شعار المحل وصورة الغلاف','error');return}
+  let logo='',cover='';
+  try{[logo,cover]=await Promise.all([fileToDataUrl(f.logoFile.files[0],{maxWidth:700,maxHeight:700,maxChars:760000}),fileToDataUrl(f.coverFile.files[0],{maxWidth:1200,maxHeight:800,maxChars:760000})]);}
+  catch(e){toast(e.message||'تعذر تجهيز صور المحل','error');return}
+  const uid='owner'+Date.now(), sid='s'+Date.now();
+  const u={id:uid,name:f.ownerName.value.trim(),email,password:f.password.value,role:'shop_owner',status:'active'};
+  const shop={shopId:sid,ownerId:uid,shopName:f.shopName.value.trim(),description:f.description.value.trim(),categoryId:f.categoryId.value,logo,coverImage:cover,phone:f.phone.value.trim(),whatsapp:(f.whatsapp.value.trim()||f.phone.value.trim()),address:f.address.value.trim(),mapUrl:safeUrl(f.mapUrl.value),workingHours:f.workingHours.value.trim(),hasDelivery:f.hasDelivery.value==='yes',status:'pending',isVisible:false,isFeatured:false,featuredStartAt:null,featuredEndAt:null,createdAt:today(),updatedAt:today(),deletedAt:null,searchKeywords:[],displayOrder:localDB.shops.length+1};
+  localDB.users.push(u);localDB.shops.push(shop);persistDemoData();audit('register_shop','shop',sid,{ownerId:uid,categoryId:shop.categoryId,status:'pending'});State.currentUser=u;sessionStorage.setItem('demo_owner',u.id);toast('تم إرسال طلب المحل إلى الإدارة');setRoute('account');
+}
+function accountPage(){
+  const u=State.currentUser;
+  if(!u||u.role!=='shop_owner')return page('دخول أصحاب المحلات',`<div class="form-card center"><div style="font-size:42px">▣</div><h1 class="section-title">هذه المنطقة لأصحاب المحلات</h1><p class="muted">الزائر لا يحتاج إلى حساب. استخدم دخول أصحاب المحلات لإدارة محل أو إنشاء طلب جديد.</p><button class="btn" onclick="setRoute('login')">دخول أصحاب المحلات</button><button class="btn secondary" onclick="setRoute('register')">إنشاء حساب محل</button></div>`);
+  const s=localDB.shops.find(x=>x.ownerId===u.id);
+  const statusText={pending:'قيد مراجعة الإدارة',active:'تمت الموافقة',approved:'تمت الموافقة',rejected:'مرفوض',suspended:'موقوف'}[s?.status]||'غير معروف';
+  const statusClass=['rejected','suspended'].includes(s?.status)?'red':s?.status==='pending'?'gold':'';
+  return page('حساب صاحب المحل',`<div class="form-card"><h1 class="section-title">${esc(u.name)}</h1><p class="muted">${esc(u.email)}</p>${s?`<div class="chips"><span class="badge ${statusClass}">حالة المحل: ${esc(statusText)}</span><span class="chip">${esc(catById(s.categoryId)?.name||'بدون تصنيف')}</span></div><div class="section"><h2 class="section-title">${esc(s.shopName)}</h2><p class="muted">${esc(s.description||'')}</p>${s.status==='pending'?'<div class="notice">طلبك وصل إلى الإدارة. لن يظهر المحل للزوار حتى تتم الموافقة عليه.</div>':''}${s.status==='rejected'?'<div class="notice">تم رفض طلب المحل. راجع الإدارة لمعرفة سبب الرفض وإعادة التقديم عند الحاجة.</div>':''}</div><div class="product-actions" style="margin-top:16px">${['active','approved'].includes(s.status)?'<button class="btn" onclick="State.ownerTab=\'overview\';setRoute(\'owner\')">لوحة المحل</button>':''}<button class="btn secondary" onclick="State.currentUser=null;sessionStorage.removeItem('demo_owner');localStorage.removeItem('ais_owner_login');toast('تم تسجيل الخروج وإزالة الحفظ المحلي لتسجيل الدخول');setRoute('home')">تسجيل الخروج</button></div>`:'<div class="empty">لا يوجد محل مرتبط بهذا الحساب.</div>'}</div>`);
+}
+
+/* =========================
+   OWNER DASHBOARD
+   ========================= */
+function toggleHomeOffers(button){
+  const box=document.getElementById('homeOffersBox');
+  if(!box)return;
+  const open=box.classList.toggle('hidden')===false;
+  button.setAttribute('aria-expanded',open?'true':'false');
+  button.classList.toggle('open',open);
+}
+function toggleHomeProducts(button){
+  const box=document.getElementById('homeFeaturedProductsBox');
+  if(!box)return;
+  const open=box.classList.toggle('hidden')===false;
+  button.setAttribute('aria-expanded',open?'true':'false');
+  button.classList.toggle('open',open);
+}
+
+function ownerDashboard(){
+  const u=State.currentUser;
+  if(!u||u.role!=='shop_owner')return page('لوحة صاحب المحل',`<div class="empty">هذه الواجهة متاحة لحساب صاحب المحل. <button class="btn" onclick="setRoute('login')">تسجيل الدخول</button></div>`);
+  const s=localDB.shops.find(x=>x.ownerId===u.id);
+  if(!s)return page('لوحة صاحب المحل',`<div class="empty">لا يوجد محل مرتبط بهذا الحساب.</div>`);
+  if(!['active','approved'].includes(s.status))return page('لوحة صاحب المحل',`<div class="form-card center"><h1 class="section-title">${esc(s.shopName)}</h1><p class="muted">حالة الطلب: <b>${esc(s.status)}</b></p><div class="notice">لا يمكنك إدارة المنتجات والعروض أو نشر المحل قبل موافقة الإدارة.</div><button class="btn" onclick="setRoute('account')">العودة إلى الحساب</button></div>`);
+  cleanupExpiredOffers();
+  const products=localDB.products.filter(p=>p.shopId===s.shopId&&p.status!=='deleted');
+  const offers=localDB.specialOffers.filter(o=>o.shopId===s.shopId&&o.endAt>=today());
+  const tab=State.ownerTab;let content='';
+  if(tab==='overview')content=`<div class="form-card"><h2 class="section-title">مرحباً ${esc(u.name)}</h2><p class="muted">من هنا تدير بيانات المحل والمنتجات والعروض الخاصة.</p><div class="chips"><span class="chip">${products.length} منتجات</span><span class="chip">${offers.length} عروض خاصة فعالة/مجدولة</span></div></div>`;
+  if(tab==='shop')content=ownerShopForm(s);
+  if(tab==='products')content=ownerProducts(s,products);
+  if(tab==='offers')content=ownerOffers(s);
+  return page('لوحة صاحب المحل',`<div class="hero" style="padding:22px"><h1>لوحة صاحب المحل</h1><p>${esc(s.shopName)}</p></div><div class="admin-nav">${[['overview','الرئيسية'],['shop','بيانات المحل'],['products','المنتجات'],['offers','العروض الخاصة']].map(x=>`<button class="tab ${tab===x[0]?'active':''}" onclick="State.ownerTab='${x[0]}';render()">${x[1]}</button>`).join('')}</div>${content}`);
+}
+function ownerShopForm(s){
+  return `<div class="form-card"><h2 class="section-title">بيانات المحل</h2><form onsubmit="event.preventDefault();saveOwnerShop(this,'${esc(s.shopId)}')"><div class="form-grid two"><div class="field"><label>اسم المحل</label><input name="shopName" value="${esc(s.shopName)}" required></div><div class="field"><label>الهاتف</label><input name="phone" value="${esc(s.phone)}"></div><div class="field"><label>WhatsApp</label><input name="whatsapp" value="${esc(s.whatsapp)}"></div><div class="field"><label>العنوان</label><input name="address" value="${esc(s.address)}"></div><div class="field"><label>ساعات العمل</label><input name="workingHours" value="${esc(s.workingHours)}"></div><div class="field"><label>خدمة التوصيل</label><select name="hasDelivery"><option value="yes" ${s.hasDelivery?'selected':''}>✅ يوجد خدمة توصيل 🚕</option><option value="no" ${!s.hasDelivery?'selected':''}>❌ لا يوجد خدمة توصيل 🚕</option></select></div><div class="field"><label>التصنيف</label><select name="categoryId">${categories.map(c=>`<option value="${c.id}" ${s.categoryId===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}</select></div></div><div class="field" style="margin-top:12px"><label>رابط الموقع على الخريطة (اختياري)</label><input name="mapUrl" type="url" value="${esc(s.mapUrl||'')}" placeholder="https://maps.google.com/..."></div><div class="field" style="margin-top:12px"><label>الوصف</label><textarea name="description">${esc(s.description)}</textarea></div><div class="form-grid two" style="margin-top:12px"><div class="field"><label>تغيير صورة الغلاف</label><input name="coverFile" type="file" accept="image/*" onchange="previewFile(this,'coverPreview')"><img id="coverPreview" class="preview" src="${esc(s.coverImage)}" onerror="this.style.display='none'"></div><div class="field"><label>تغيير الشعار / الصورة الشخصية</label><input name="logoFile" type="file" accept="image/*" onchange="previewFile(this,'logoPreview')"><img id="logoPreview" class="preview" src="${esc(s.logo)}" onerror="this.style.display='none'"></div></div><button class="btn" style="margin-top:13px">حفظ التعديلات</button></form><p class="meta">تم ربط البيانات والصور بـ Cloud Firestore. الصور تُحفظ في مجموعة media داخل Firestore ولا تستخدم Storage.</p></div>`;
+}
+async function saveOwnerShop(f,id){
+  const s=shopById(id);if(!s)return;
+  const updates={shopName:f.shopName.value.trim(),phone:f.phone.value.trim(),whatsapp:f.whatsapp.value.trim(),address:f.address.value.trim(),mapUrl:safeUrl(f.mapUrl.value),workingHours:f.workingHours.value.trim(),categoryId:f.categoryId.value,description:f.description.value.trim(),hasDelivery:f.hasDelivery.value==='yes',updatedAt:today()};
+  try{
+    if(f.coverFile.files?.[0])updates.coverImage=await fileToDataUrl(f.coverFile.files[0],{maxWidth:1200,maxHeight:800,maxChars:760000});
+    if(f.logoFile.files?.[0])updates.logo=await fileToDataUrl(f.logoFile.files[0],{maxWidth:700,maxHeight:700,maxChars:760000});
+  }catch(e){toast(e.message||'تعذر تجهيز الصورة','error');return}
+  Object.assign(s,updates);audit('update','shop',id);persistDemoData();toast('تم حفظ بيانات المحل');render();
+}
+async function previewFile(input,id){
+  const file=input.files?.[0],img=document.getElementById(id);
+  if(!file||!img)return;
+  try{img.src=await fileToDataUrl(file,{maxWidth:1600,maxHeight:1600});img.style.display='block';}
+  catch(e){img.removeAttribute('src');img.style.display='none';toast('تعذر قراءة الصورة','error');}
+}
+async function loadProductImage(input){
+  const file=input.files?.[0],preview=document.getElementById('productPreview'),urlInput=document.querySelector('#productFormImageUrl');
+  if(!file||!preview||!urlInput)return;
+  try{const data=await fileToDataUrl(file,{maxWidth:1400,maxHeight:1400,quality:.72});urlInput.value=data;preview.src=data;preview.style.display='block';}
+  catch(e){toast('تعذر ضغط الصورة','error');}
+}
+function scheduleDateFields(form,startName,endName,label='الجدولة'){
+  const start=form?.elements?.[startName]?.value||'';
+  const end=form?.elements?.[endName]?.value||'';
+  if(!start||!end){toast('اختر تاريخ البداية والنهاية أولاً','error');return}
+  if(end<start){toast('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  form.elements[endName].min=start;
+  form.elements[startName].value=start;
+  form.elements[endName].value=end;
+  toast(`${label}: ${start} → ${end}`);
+}
+function ownerOffers(s){
+  cleanupExpiredOffers();
+  const offers=localDB.specialOffers.filter(o=>o.shopId===s.shopId);
+  return `<div class="form-card"><div class="section-head"><h2 class="section-title">العروض الخاصة</h2><button class="btn small gold" onclick="openOfferForm('${esc(s.shopId)}')">+ إضافة عرض خاص</button></div><p class="muted">حدد المنتج والسعر القديم والسعر الجديد وفترة العرض. عند انتهاء التاريخ يُحذف العرض تلقائياً ولا يظهر للزوار.</p><div class="table-wrap"><table class="table"><tr><th>المنتج</th><th>السعر القديم</th><th>السعر الجديد</th><th>من</th><th>إلى</th><th>الحالة</th><th>إجراء</th></tr>${offers.map(o=>{const p=productById(o.productId);return `<tr><td>${esc(p?.name||'منتج محذوف')}</td><td>${o.oldPrice!=null?Number(o.oldPrice).toFixed(2)+' د.أ':'-'}</td><td>${o.newPrice!=null?Number(o.newPrice).toFixed(2)+' د.أ':'-'}</td><td>${esc(o.startAt||'-')}</td><td>${esc(o.endAt||'-')}</td><td>${validPeriod(o.startAt,o.endAt)?'فعال/مجدول':'منتهي'}</td><td><div class="row"><button class="btn small" onclick="openOfferForm('${esc(s.shopId)}','${esc(o.offerId)}')">تعديل</button><button class="btn small danger" onclick="deleteLocalOffer('${esc(o.offerId)}')">حذف</button></div></td></tr>`}).join('')||'<tr><td colspan="7">لا توجد عروض خاصة لهذا المحل.</td></tr>'}</table></div></div>`;
+}
+function openScheduleDatePicker(formId,fieldName,label){
+  const form=document.getElementById(formId);
+  if(!form)return;
+  const field=form.elements[fieldName];
+  if(!field)return;
+
+  const current=field.value||'';
+  const startFieldName=fieldName.endsWith('EndAt')?fieldName.replace(/EndAt$/,'StartAt'):(fieldName==='endAt'?'startAt':'');
+  const min=startFieldName?(form.elements[startFieldName]?.value||''):'';
+  const pickerId='scheduleCalendar_'+Date.now();
+
+  $('#datePickerBox').innerHTML=`
+    <div class="modal-head">
+      <h2>${esc(label||'اختيار التاريخ')}</h2>
+      <button type="button" class="close" aria-label="إغلاق" onclick="closeDatePicker()">×</button>
+    </div>
+    <div id="${pickerId}" class="schedule-calendar"
+         data-form="${esc(formId)}" data-field="${esc(fieldName)}"
+         data-selected="${esc(current)}" data-min="${esc(min)}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button type="button" class="btn secondary" onclick="changeScheduleCalendar('${pickerId}',-1)">‹</button>
+        <strong id="${pickerId}_title" style="flex:1;text-align:center"></strong>
+        <button type="button" class="btn secondary" onclick="changeScheduleCalendar('${pickerId}',1)">›</button>
+      </div>
+      <div id="${pickerId}_grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px"></div>
+      <div class="notice" style="margin-top:10px">اختر التاريخ ثم اضغط «إدراج» لإدخاله مباشرة في الخانة.</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="btn secondary" style="flex:1" onclick="closeDatePicker()">إلغاء</button>
+        <button type="button" class="btn gold" style="flex:1" onclick="insertScheduleDateFromCalendar('${pickerId}')">📅 إدراج</button>
+      </div>
+    </div>`;
+
+  const root=document.getElementById(pickerId);
+  let base=current?new Date(current+'T00:00:00'):new Date();
+  if(Number.isNaN(base.getTime()))base=new Date();
+  root.dataset.year=String(base.getFullYear());
+  root.dataset.month=String(base.getMonth());
+  $('#datePickerOverlay').style.display='flex';
+  $('#datePickerOverlay').setAttribute('aria-hidden','false');
+  renderScheduleCalendar(pickerId);
+}
+
+function renderScheduleCalendar(id){
+  const root=document.getElementById(id);
+  if(!root)return;
+  const y=Number(root.dataset.year),m=Number(root.dataset.month);
+  const selected=root.dataset.selected||'',min=root.dataset.min||'';
+  const title=document.getElementById(id+'_title'),grid=document.getElementById(id+'_grid');
+  if(!title||!grid)return;
+
+  title.textContent=new Intl.DateTimeFormat('ar-JO',{month:'long',year:'numeric'}).format(new Date(y,m,1));
+  grid.innerHTML='';
+  ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت'].forEach(n=>{
+    const h=document.createElement('div');
+    h.textContent=n;h.style.cssText='text-align:center;font-size:11px;font-weight:800;padding:5px';
+    grid.appendChild(h);
+  });
+
+  const first=new Date(y,m,1).getDay(),total=new Date(y,m+1,0).getDate();
+  for(let i=0;i<first;i++)grid.appendChild(document.createElement('div'));
+
+  for(let day=1;day<=total;day++){
+    const value=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const b=document.createElement('button');
+    b.type='button';b.className='btn secondary';b.textContent=day;
+    b.style.cssText='padding:9px 0;min-width:0';
+    if(value===selected)b.style.outline='3px solid var(--gold)';
+    if(min&&value<min){
+      b.disabled=true;b.style.opacity='.35';
+    }else{
+      b.onclick=function(){root.dataset.selected=value;renderScheduleCalendar(id);};
+    }
+    grid.appendChild(b);
+  }
+}
+
+function changeScheduleCalendar(id,delta){
+  const root=document.getElementById(id);
+  if(!root)return;
+  const d=new Date(Number(root.dataset.year),Number(root.dataset.month)+delta,1);
+  root.dataset.year=String(d.getFullYear());
+  root.dataset.month=String(d.getMonth());
+  renderScheduleCalendar(id);
+}
+
+function insertScheduleDateFromCalendar(id){
+  const root=document.getElementById(id);
+  if(!root)return;
+  const form=document.getElementById(root.dataset.form);
+  const fieldName=root.dataset.field;
+  const selected=root.dataset.selected||'';
+  if(!form||!selected){toast('اختر التاريخ أولاً','error');return}
+
+  const startFieldName=fieldName.endsWith('EndAt')?fieldName.replace(/EndAt$/,'StartAt'):(fieldName==='endAt'?'startAt':'');
+  const endFieldName=fieldName.endsWith('StartAt')?fieldName.replace(/StartAt$/,'EndAt'):(fieldName==='startAt'?'endAt':'');
+  if(startFieldName&&fieldName!==startFieldName){
+    const start=form.elements[startFieldName]?.value||'';
+    if(start&&selected<start){
+      toast('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية','error');
+      return;
+    }
+  }
+  if(endFieldName&&fieldName!==endFieldName){
+    const end=form.elements[endFieldName]?.value||'';
+    if(end&&selected>end)form.elements[endFieldName].value='';
+  }
+
+  form.elements[fieldName].value=selected;
+  closeDatePicker();
+  toast('تم إدراج التاريخ مباشرة في الخانة');
+}
+
+function closeDatePicker(){
+  const overlay=$('#datePickerOverlay');
+  if(overlay){
+    overlay.style.display='none';
+    overlay.setAttribute('aria-hidden','true');
+  }
+}
+
+function openOfferForm(shopId,offerId=''){
+  cleanupExpiredOffers();
+  const existing=offerId?localDB.specialOffers.find(o=>o.offerId===offerId):null;
+  const shopProducts=localDB.products.filter(p=>p.shopId===shopId&&isActiveProduct(p));
+  if(!shopProducts.length){
+    toast('أضف منتجاً للمحل أولاً قبل إنشاء عرض خاص','error');
+    return;
+  }
+
+  const p=existing?productById(existing.productId):shopProducts[0];
+  const formId='offerForm_'+Date.now();
+
+  $('#modalBox').innerHTML=`
+    <div class="modal-head">
+      <h2 id="modalTitle">${existing?'تعديل العرض الخاص':'إضافة عرض خاص'}</h2>
+      <button class="close" aria-label="إغلاق" onclick="closeModal()">×</button>
+    </div>
+    <form id="${formId}" onsubmit="event.preventDefault();saveOfferForm(this,'${esc(shopId)}','${esc(offerId)}')">
+      <div class="form-grid">
+        <div class="field">
+          <label>المنتج</label>
+          <select name="productId" required>
+            ${shopProducts.map(x=>`
+              <option value="${esc(x.productId)}" ${x.productId===(existing?.productId||p.productId)?'selected':''}>
+                ${esc(x.name)}
+              </option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-grid two">
+          <div class="field">
+            <label>السعر القديم</label>
+            <input name="oldPrice" type="number" step="0.01" min="0"
+                   value="${esc(existing?.oldPrice??p?.price??'')}" required>
+          </div>
+          <div class="field">
+            <label>السعر الجديد</label>
+            <input name="newPrice" type="number" step="0.01" min="0"
+                   value="${esc(existing?.newPrice??'')}" required>
+          </div>
+        </div>
+
+        <div class="form-grid two">
+          <div class="field">
+            <label>من تاريخ</label>
+            <input id="${formId}_start" name="startAt" type="text"
+                   value="${esc(existing?.startAt||today())}"
+                   readonly required
+                   onclick="openScheduleDatePicker('${formId}','startAt','تاريخ بداية العرض')">
+          </div>
+          <div class="field">
+            <label>إلى تاريخ</label>
+            <input id="${formId}_end" name="endAt" type="text"
+                   value="${esc(existing?.endAt||'')}"
+                   readonly required
+                   onclick="openScheduleDatePicker('${formId}','endAt','تاريخ نهاية العرض')">
+          </div>
+        </div>
+
+        <button type="submit" class="btn full">حفظ العرض الخاص</button>
+      </div>
+    </form>`;
+  openModal();
+}
+
+function scheduleSelectedDates(form){
+  const start=form.startAt?.value||''; const end=form.endAt?.value||'';
+  if(!start||!end){toast('اختر تاريخ البداية والنهاية أولاً','error');return}
+  if(end<start){toast('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  form.endAt.min=start;
+  form.startAt.value=start; form.endAt.value=end;
+  toast(`تمت الجدولة من ${start} إلى ${end}`);
+}
+function scheduleOwnerFeature(form){
+  const end=form.endAt?.value||'';
+  if(!end){toast('اختر تاريخ نهاية التمييز أولاً','error');return}
+  if(end<today()){toast('تاريخ النهاية لا يمكن أن يكون في الماضي','error');return}
+  form.endAt.value=end; toast(`تمت جدولة نهاية التمييز في ${end}`);
+}
+function saveOfferForm(f,shopId,offerId){
+  const product=productById(f.productId.value);
+  if(!product||product.shopId!==shopId){toast('المنتج غير صالح','error');return}
+  const start=f.startAt.value,end=f.endAt.value,oldPrice=Number(f.oldPrice.value),newPrice=Number(f.newPrice.value);
+  if(!start||!end||end<start){toast('تاريخ نهاية العرض يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  if(!Number.isFinite(oldPrice)||!Number.isFinite(newPrice)){toast('أدخل السعر القديم والجديد بشكل صحيح','error');return}
+  const duplicate=localDB.specialOffers.find(o=>o.shopId===shopId&&o.productId===product.productId&&o.offerId!==offerId&&validPeriod(o.startAt,o.endAt));
+  if(duplicate){toast('يوجد عرض فعال أو مجدول لهذا المنتج بالفعل','error');return}
+  const data={productId:product.productId,shopId,oldPrice,newPrice,startAt:start,endAt:end,status:'active',updatedAt:today()};
+  if(offerId){const o=localDB.specialOffers.find(x=>x.offerId===offerId);if(!o)return;Object.assign(o,data)}else{localDB.specialOffers.push({offerId:'of'+Date.now(),...data,createdAt:today()})}
+  persistDemoData();audit(offerId?'update':'create','specialOffer',offerId||data.productId);closeModal();toast('تم حفظ العرض الخاص');render();
+}
+function ownerProducts(s,products){
+  return `<div class="form-card"><div class="section-head"><h2 class="section-title">منتجات المحل</h2><button class="btn small" onclick="openProductForm('${esc(s.shopId)}')">+ إضافة منتج</button></div>${products.length?`<div class="table-wrap"><table class="table"><tr><th>المنتج</th><th>السعر</th><th>الحالة</th><th>التمييز</th><th>إجراءات</th></tr>${products.map(p=>`<tr><td>${esc(p.name)}</td><td>${Number(p.price).toFixed(2)} د.أ</td><td>${esc(p.status)}</td><td>${isFeatured(p)?'⭐ مميز'+(p.featuredEndAt?`<small> حتى ${esc(p.featuredEndAt)}</small>`:' مستمر'):'غير مميز'}</td><td><button class="btn small" onclick="openProductForm('${esc(s.shopId)}','${esc(p.productId)}')">تعديل</button> <button class="btn small gold" onclick="openOwnerProductFeaturedForm('${esc(p.productId)}')">${isFeatured(p)?'⭐ إلغاء/تعديل التمييز':'⭐ تمييز المنتج'}</button> <button class="btn small danger" onclick="deleteLocalProduct('${esc(p.productId)}')">حذف</button></td></tr>`).join('')}</table></div>`:'<div class="empty">لا توجد منتجات حالياً</div>'}</div>`;
+}
+
+function openProductForm(shopId,pid=''){
+  const p=pid?productById(pid):{name:'',description:'',price:'',image:'',isFeatured:false,featuredStartAt:'',featuredEndAt:''};
+  const featured=!!isFeatured(p);
+  const productFormId='productForm_'+shopId+'_'+(pid||'new');
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">${pid?'تعديل المنتج':'إضافة منتج'}</h2><button class="close" aria-label="إغلاق" onclick="closeModal()">×</button></div><form id="${productFormId}" onsubmit="event.preventDefault();saveProductForm(this,'${shopId}','${pid}')"><div class="form-grid"><div class="field"><label>اسم المنتج</label><input name="name" value="${esc(p.name)}" required></div><div class="field"><label>الوصف</label><textarea name="description">${esc(p.description)}</textarea></div><div class="field"><label>السعر</label><input name="price" type="number" step="0.01" min="0" value="${esc(p.price)}" required></div><div class="field"><label>الصورة</label><input id="productFormImageUrl" name="imageUrl" value="${esc(p.image||'')}" placeholder="رابط صورة (اختياري)"><input type="file" accept="image/*" onchange="loadProductImage(this)"><img id="productPreview" class="preview" src="${esc(p.image||'')}" onerror="this.style.display='none'"></div><div class="chips"><label><input name="featured" type="checkbox" ${featured?'checked':''}> ⭐ تمييز هذا المنتج داخل صفحة المحل</label></div><div class="form-grid two"><div class="field"><label>بداية التميز داخل المحل</label><input id="productForm_featuredStartAt_${esc(pid||'new')}" name="featuredStartAt" type="text" value="${esc(p.featuredStartAt||today())}" readonly required onclick="openScheduleDatePicker('productForm_${esc(shopId)}_${esc(pid||'new')}','featuredStartAt','تاريخ بداية التميز')"></div><div class="field"><label>نهاية التميز داخل المحل</label><input id="productForm_featuredEndAt_${esc(pid||'new')}" name="featuredEndAt" type="text" value="${esc(p.featuredEndAt||'')}" readonly required onclick="openScheduleDatePicker('productForm_${esc(shopId)}_${esc(pid||'new')}','featuredEndAt','تاريخ نهاية التميز')"></div></div><button class="btn full">حفظ المنتج</button></div></form>`;openModal();
+}
+function saveProductForm(f,shopId,pid){
+  let p=pid?productById(pid):null;
+  const featuredOn=!!f.featured?.checked;
+  const currentOwnerFeatured=activeOwnerFeaturedProductForShop(shopId);
+  if(featuredOn&&currentOwnerFeatured&&currentOwnerFeatured.productId!==pid){
+    toast(`لا يمكن تمييز أكثر من منتج واحد. ألغِ تمييز «${currentOwnerFeatured.name}» أولاً.`,'error');
+    return;
+  }
+  let featuredStart=featuredOn?(f.featuredStartAt?.value||today()):null;
+  let featuredEnd=featuredOn?(f.featuredEndAt?.value||'2027-12-31'):null;
+  if(featuredOn&&featuredEnd<featuredStart){toast('تاريخ نهاية التميز يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  const data={name:f.name.value.trim(),description:f.description.value.trim(),price:Number(f.price.value),image:f.imageUrl.value.trim(),isFeatured:featuredOn,featuredStartAt:featuredStart,featuredEndAt:featuredEnd,updatedAt:today()};
+  if(p)Object.assign(p,data);else{p={productId:'p'+Date.now(),shopId,...data,status:'active',createdAt:today(),deletedAt:null,adminFeatured:false,adminFeaturedStartAt:null,adminFeaturedEndAt:null};localDB.products.push(p)}
+  delete p.oldPrice;
+  persistDemoData();audit(pid?'update':'create','product',p.productId);closeModal();toast('تم حفظ المنتج محلياً');render();
+}
+function openOwnerProductFeaturedForm(pid){
+  const p=productById(pid);if(!p)return;
+  const on=!!isFeatured(p);
+  const formId='ownerFeatureForm_'+Date.now();
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">تمييز المنتج داخل المحل</h2><button class="close" aria-label="إغلاق" onclick="closeModal()">×</button></div><form id="${formId}" onsubmit="event.preventDefault();saveOwnerProductFeatured(this,'${esc(pid)}')"><div class="form-grid"><div class="notice"><b>${esc(p.name)}</b><br>يمكن لكل محل تمييز منتج واحد فقط في الوقت نفسه. لتغيير المنتج المميز، ألغِ تمييز المنتج الحالي أولاً.</div><label class="chip" style="width:max-content"><input name="featured" type="checkbox" ${on?'checked':''} onchange="this.form.startAt.disabled=!this.checked;this.form.endAt.disabled=this.checked&&this.form.noEnd.checked"> ⭐ تمييز المنتج</label><div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="startAt" type="text" value="${esc(p.featuredStartAt||today())}" readonly required onclick="openScheduleDatePicker('${formId}','startAt','تاريخ بداية التميز')" ${on?'':'disabled'}></div><div class="field"><label>إلى تاريخ</label><input name="endAt" type="text" value="${esc(p.featuredEndAt||'')}" readonly required onclick="openScheduleDatePicker('${formId}','endAt','تاريخ نهاية التميز')" ${on&&!p.featuredEndAt?'disabled':''}></div></div><label class="chip" style="width:max-content"><input name="noEnd" type="checkbox" ${on&&!p.featuredEndAt?'checked':''} onchange="this.form.endAt.disabled=this.checked; if(this.checked)this.form.endAt.value=''"> مستمر بدون تاريخ انتهاء</label><button class="btn full">حفظ</button></div></form>`;
+  openModal();
+}
+function saveOwnerProductFeatured(f,pid){
+  const p=productById(pid);if(!p)return;
+  const on=!!f.featured?.checked;
+  const currentOwnerFeatured=activeOwnerFeaturedProductForShop(p.shopId);
+  if(on&&currentOwnerFeatured&&currentOwnerFeatured.productId!==pid){
+    toast(`لا يمكن تمييز أكثر من منتج واحد. ألغِ تمييز «${currentOwnerFeatured.name}» أولاً.`,'error');
+    return;
+  }
+  const start=on?(f.startAt?.value||today()):null;
+  const end=on?(f.noEnd?.checked?null:(f.endAt?.value||null)):null;
+  if(on&&end&&end<start){toast('تاريخ نهاية التمييز يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  if(on&&!f.noEnd?.checked&&!end){toast('حدد تاريخ نهاية أو اختر التمييز المستمر','error');return}
+  if(on&&end<today()){toast('تاريخ النهاية لا يمكن أن يكون في الماضي','error');return}
+  p.isFeatured=on;p.featuredStartAt=start;p.featuredEndAt=end;
+  persistDemoData();audit('update','owner_featured_product',pid,{isFeatured:on,featuredStartAt:start,featuredEndAt:end});closeModal();toast(on?'تم تمييز المنتج':'تم إلغاء تمييز المنتج');render();
+}
+function deleteLocalProduct(id){
+  const p=productById(id);if(!p)return;
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⚠️ تأكيد حذف المنتج</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="notice" style="background:#fff0f0;border-color:#e5b7b7;color:#7a2525">هل أنت متأكد من حذف المنتج <b>«${esc(p.name)}»</b>؟</div>
+  <div class="product-actions" style="margin-top:14px"><button class="btn secondary full" onclick="closeModal()">إلغاء</button><button class="btn danger full" onclick="confirmDeleteLocalProduct('${esc(id)}')">تأكيد الحذف</button></div>`;
+  openModal();
+}
+async function confirmDeleteLocalProduct(id){
+  const p=productById(id);if(!p)return;
+  try{
+    await deleteFirestoreRecord('products',id);
+    localDB.products=localDB.products.filter(x=>x.productId!==id);
+    audit('delete','product',id,{name:p.name});
+    closeModal();toast('تم حذف المنتج نهائياً من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف المنتج من Firestore، لم يتم تأكيد الحذف.','error');}
+}function deleteLocalOffer(id){
+  const o=localDB.specialOffers.find(x=>x.offerId===id);if(!o)return;
+  const p=productById(o.productId);
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⚠️ تأكيد حذف العرض الخاص</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="notice" style="background:#fff0f0;border-color:#e5b7b7;color:#7a2525">هل أنت متأكد من حذف العرض الخاص <b>«${esc(p?.name||'هذا المنتج')}»</b>؟</div>
+  <div class="product-actions" style="margin-top:14px"><button class="btn secondary full" onclick="closeModal()">إلغاء</button><button class="btn danger full" onclick="confirmDeleteLocalOffer('${esc(id)}')">تأكيد الحذف</button></div>`;
+  openModal();
+}
+async function confirmDeleteLocalOffer(id){
+  const o=localDB.specialOffers.find(x=>x.offerId===id);if(!o)return;
+  try{
+    await deleteFirestoreRecord('specialOffers',id);
+    localDB.specialOffers=localDB.specialOffers.filter(x=>x.offerId!==id);
+    audit('delete','special_offer',id,{productId:o.productId,shopId:o.shopId});
+    closeModal();toast('تم حذف العرض الخاص نهائياً من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف العرض من Firestore، لم يتم تأكيد الحذف.','error');}
+}function adminDashboard(){
+  if(!State.adminUnlocked){return adminLoginPage();}
+  const tabs=[['overview','الرئيسية'],['requests','طلبات المحلات'],['shops','إدارة المحلات'],['products','المنتجات'],['offers','العروض'],['promotions','الحملات والترويج'],['ads','الإعلانات'],['users','حسابات أصحاب المحلات'],['audit','سجل الإدارة'],['settings','الإعدادات']];
+  let content=''; const t=State.adminTab;
+  if(t==='overview')content=adminOverview();
+  if(t==='requests')content=adminRequests();
+  if(t==='shops')content=adminShops();
+  if(t==='products')content=adminProducts();
+  if(t==='offers')content=adminOffers();
+  if(t==='promotions')content=adminPromotions();
+  if(t==='ads')content=adminAds();
+  if(t==='users')content=adminUsers();
+  if(t==='audit')content=adminAudit();
+  if(t==='settings')content=adminSettings();
+  return page('لوحة الإدارة',`<div class="hero" style="padding:22px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h1>لوحة الإدارة</h1><p>تحكم كامل بالمحلات والمحتوى والعروض والحملات والإعلانات.</p></div><button class="btn danger" onclick="adminLogout()">إغلاق لوحة الإدارة</button></div></div><div class="admin-nav">${tabs.map(x=>`<button class="tab ${t===x[0]?'active':''}" onclick="State.adminTab='${x[0]}';render()">${x[1]}</button>`).join('')}</div>${content}`);
+}
+function adminOverview(){
+  return `<div class="form-card"><h2 class="section-title">لوحة الإدارة</h2><p class="muted">إدارة طلبات المحلات والمحتوى والعروض والإعلانات من هنا.</p><div class="product-actions"><button class="btn" onclick="State.adminTab='requests';render()">مراجعة طلبات المحلات</button><button class="btn" onclick="State.adminTab='shops';render()">إدارة المحلات</button><button class="btn" onclick="State.adminTab='ads';render()">إدارة الإعلانات</button></div></div>`;
+}
+function adminShops(){return `<div class="form-card"><div class="section-head"><h2 class="section-title">إدارة المحلات</h2><button class="btn small" onclick="openShopForm()">+ إضافة محل إداري</button></div><p class="muted">الإدارة تتحكم بالموافقة والتعليق والحذف، ويمكنها تمييز المحل لفترة محددة ليظهر في «المحلات المميزة» فقط.</p><div class="table-wrap"><table class="table"><tr><th>المحل</th><th>التصنيف</th><th>الحالة</th><th>مميز</th><th>إجراءات</th></tr>${localDB.shops.map(s=>`<tr><td>${esc(s.shopName)}</td><td>${esc(catById(s.categoryId)?.name||'')}</td><td><span class="badge ${s.status==='active'?'':'red'}">${esc(s.status)}</span></td><td>${isFeatured(s)?`نعم<br><small>${esc(s.featuredStartAt||'')} → ${esc(s.featuredEndAt||'')}</small>`:'لا'}</td><td><button class="btn small" onclick="setShopStatus('${s.shopId}','active')">تفعيل</button> <button class="btn small gold" onclick="openShopFeaturedForm('${esc(s.shopId)}')">⭐ تمييز المحل</button> <button class="btn small danger" onclick="setShopStatus('${s.shopId}','suspended')">تعليق</button> <button class="btn small danger" onclick="deleteShop('${s.shopId}')">حذف نهائي</button></td></tr>`).join('')}</table></div></div>`}
+function openShopFeaturedForm(id){
+  const s=shopById(id);if(!s)return;
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⭐ تمييز المحل</h2><button class="close" onclick="closeModal()">×</button></div>
+  <form onsubmit="event.preventDefault();saveShopFeatured(this,'${esc(id)}')"><div class="form-grid">
+  <div class="notice"><b>${esc(s.shopName)}</b><br>اختر تفعيل أو إلغاء التمييز، ثم حدد الفترة.</div>
+  <div class="field"><label>حالة التمييز</label><select name="featured"><option value="on" ${s.isFeatured?'selected':''}>⭐ تفعيل تمييز المحل</option><option value="off" ${!s.isFeatured?'selected':''}>إلغاء تمييز المحل</option></select></div>
+  <div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="startAt" type="date" value="${esc(s.featuredStartAt||today())}"></div><div class="field"><label>إلى تاريخ</label><input name="endAt" type="date" min="${esc(s.featuredStartAt||today())}" value="${esc(s.featuredEndAt||'')}"></div></div>
+  <button class="btn full">حفظ حالة التمييز</button></div></form>`;openModal();
+}
+function saveShopFeatured(f,id){
+  const s=shopById(id);if(!s)return;
+  const on=f.featured.value==='on',start=on?(f.startAt.value||today()):null,end=on?(f.endAt.value||null):null;
+  if(on&&!end){toast('حدد تاريخ نهاية التمييز','error');return}
+  if(on&&end<start){toast('تاريخ نهاية التمييز يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  s.isFeatured=on;s.featuredStartAt=start;s.featuredEndAt=end;s.updatedAt=today();audit('update','featured_shop',id,{isFeatured:on,featuredStartAt:start,featuredEndAt:end});persistDemoData();closeModal();toast(on?'تم تفعيل تمييز المحل':'تم إلغاء تمييز المحل');render();
+}
+
+function setShopStatus(id,status){const s=shopById(id);if(!s)return;s.status=status;s.isVisible=status==='active';s.updatedAt=today();audit('status_change','shop',id,{status});persistDemoData();toast(status==='active'?'تم تفعيل المحل':'تم تعليق المحل');render()}
+function deleteShop(id){
+  const s=shopById(id);if(!s)return;
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⚠️ تأكيد حذف المحل</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="notice" style="background:#fff0f0;border-color:#e5b7b7;color:#7a2525">هل أنت متأكد من حذف المحل <b>«${esc(s.shopName)}»</b> نهائياً؟<br>سيتم حذف المحل وحساب صاحبه ومنتجاته والعروض المرتبطة به.</div>
+  <div class="product-actions" style="margin-top:14px"><button class="btn secondary full" onclick="closeModal()">إلغاء</button><button class="btn danger full" onclick="confirmDeleteShop('${esc(id)}')">تأكيد الحذف</button></div>`;
+  openModal();
+}
+async function confirmDeleteShop(id){
+  const s=shopById(id);if(!s)return;
+  try{
+    const productIds=localDB.products.filter(x=>x.shopId===id).map(x=>x.productId);
+    const offerIds=localDB.specialOffers.filter(x=>x.shopId===id).map(x=>x.offerId);
+    const requestIds=localDB.promotionRequests.filter(x=>x.shopId===id).map(x=>x.requestId);
+    const serviceIds=localDB.services.filter(x=>x.shopId===id).map((x,i)=>x.serviceId||('service_'+id+'_'+i));
+    await deleteFirestoreRecord('shops',id);
+    if(s.ownerId)await deleteFirestoreRecord('users',s.ownerId);
+    for(const x of productIds)await deleteFirestoreRecord('products',x);
+    for(const x of offerIds)await deleteFirestoreRecord('specialOffers',x);
+    for(const x of requestIds)await deleteFirestoreRecord('promotionRequests',x);
+    for(const x of serviceIds)await deleteFirestoreRecord('services',x);
+    localDB.shops=localDB.shops.filter(x=>x.shopId!==id);
+    localDB.users=localDB.users.filter(x=>x.id!==s.ownerId);
+    localDB.products=localDB.products.filter(x=>x.shopId!==id);
+    localDB.specialOffers=localDB.specialOffers.filter(x=>x.shopId!==id);
+    localDB.promotionRequests=localDB.promotionRequests.filter(x=>x.shopId!==id);
+    localDB.services=localDB.services.filter(x=>x.shopId!==id);
+    audit('delete','shop',id,{shopName:s.shopName,permanent:true});
+    closeModal();toast('تم حذف المحل وجميع بياناته من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف المحل من Firestore؛ لم يتم تأكيد العملية.','error');}
+}function adminRequests(){const pending=localDB.shops.filter(s=>s.status==='pending');return `<div class="form-card"><h2 class="section-title">طلبات المحلات الجديدة</h2>${pending.length?`<div class="table-wrap"><table class="table"><tr><th>المحل</th><th>التصنيف</th><th>الهاتف</th><th>إجراء</th></tr>${pending.map(s=>`<tr><td>${esc(s.shopName)}</td><td>${esc(catById(s.categoryId)?.name||'')}</td><td>${esc(s.phone||'-')}</td><td><button class="btn small" onclick="setShopStatus('${s.shopId}','active')">موافقة</button> <button class="btn small danger" onclick="setShopStatus('${s.shopId}','rejected')">رفض</button> <button class="btn small danger" onclick="deleteShop('${s.shopId}')">حذف</button></td></tr>`).join('')}</table></div>`:'<div class="empty">لا توجد طلبات محلات معلقة حالياً.</div>'}</div>`}
+function adminProducts(){return `<div class="form-card"><div class="section-head"><h2 class="section-title">المنتجات</h2></div><p class="muted">يمكن للإدارة وحدها تحديد المنتجات التي تظهر ضمن المنتجات المميزة في الواجهة الرئيسية.</p><div class="table-wrap"><table class="table"><tr><th>المنتج</th><th>المحل</th><th>السعر</th><th>مميز للواجهة</th><th>الحالة</th><th>إجراء</th></tr>${localDB.products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(shopById(p.shopId)?.shopName||'محل محذوف')}</td><td>${Number(p.price).toFixed(2)} د.أ</td><td>${isAdminFeaturedProduct(p)?'نعم':'لا'}</td><td>${esc(p.status)}</td><td><button class="btn small" onclick="openAdminProductForm('${esc(p.productId)}')">إدارة التميز</button> <button class="btn small secondary" onclick="toggleProductStatus('${esc(p.productId)}')">تبديل الحالة</button></td></tr>`).join('')}</table></div></div>`}
+function openAdminProductForm(pid){
+  const p=productById(pid);if(!p)return;
+  const featured=!!p.adminFeatured;
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">تمييز المنتج للواجهة الرئيسية</h2><button class="close" aria-label="إغلاق" onclick="closeModal()">×</button></div><form onsubmit="event.preventDefault();saveAdminProductFeatured(this,'${esc(pid)}')"><div class="form-grid"><p class="muted">${esc(p.name)} — ${esc(shopById(p.shopId)?.shopName||'')}</p><div class="chips"><label><input name="adminFeatured" type="checkbox" ${featured?'checked':''}> ⭐ إظهار المنتج ضمن المنتجات المميزة في الواجهة الرئيسية</label></div><div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="adminFeaturedStartAt" type="date" value="${esc(p.adminFeaturedStartAt||today())}"></div><div class="field"><label>إلى تاريخ</label><input name="adminFeaturedEndAt" type="date" min="${esc(p.adminFeaturedStartAt||today())}" value="${esc(p.adminFeaturedEndAt||'2027-12-31')}"></div></div><button class="btn full">حفظ</button></div></form>`;openModal();
+}
+function saveAdminProductFeatured(f,pid){
+  const p=productById(pid);if(!p)return;
+  const on=!!f.adminFeatured?.checked;
+  const start=on?(f.adminFeaturedStartAt?.value||today()):null;
+  const end=on?(f.adminFeaturedEndAt?.value||'2027-12-31'):null;
+  if(on&&end<start){toast('تاريخ نهاية التميز يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  p.adminFeatured=on;p.adminFeaturedStartAt=start;p.adminFeaturedEndAt=end;
+  persistDemoData();audit('update','admin_featured_product',pid,{adminFeatured:on});closeModal();toast(on?'تم تمييز المنتج للواجهة الرئيسية':'تم إلغاء تمييز المنتج');render();
+}
+function toggleProductStatus(id){const p=productById(id);if(!p)return;p.status=p.status==='active'?'hidden':'active';audit('status_change','product',id,{status:p.status});persistDemoData();render()}
+function adminUsers(){
+  const owners=localDB.users.filter(u=>u.role==='shop_owner');
+  return `<div class="form-card"><h2 class="section-title">حسابات أصحاب المحلات</h2><p class="muted">تفعيل، تجميد مؤقت، أو حذف نهائي للحساب.</p>
+  <div class="table-wrap"><table class="table"><tr><th>الاسم</th><th>البريد</th><th>الحالة</th><th>المحل</th><th>إجراءات</th></tr>
+  ${owners.map(u=>{const s=localDB.shops.find(x=>x.ownerId===u.id);return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.status)}</td><td>${esc(s?.shopName||'لا يوجد')}</td><td><div class="row"><button class="btn small" onclick="setUserStatus('${esc(u.id)}','active')">تفعيل</button><button class="btn small danger" onclick="setUserStatus('${esc(u.id)}','suspended')">تجميد</button><button class="btn small danger" onclick="deleteOwnerAccount('${esc(u.id)}')">حذف نهائي</button></div></td></tr>`}).join('')}</table></div></div>`;
+}
+function setUserStatus(id,status){
+  const u=localDB.users.find(x=>x.id===id);if(!u||u.role==='admin')return;
+  u.status=status;const s=localDB.shops.find(x=>x.ownerId===id);
+  if(s){if(status==='suspended'){s.status='suspended';s.isVisible=false;}else if(status==='active'){s.status='active';s.isVisible=true;}s.updatedAt=today();}
+  audit('status_change','user',id,{status});persistDemoData();toast(status==='active'?'تم تفعيل الحساب والمحل':'تم تجميد حساب صاحب المحل');render();
+}
+function deleteOwnerAccount(id){
+  const u=localDB.users.find(x=>x.id===id);if(!u)return;const s=localDB.shops.find(x=>x.ownerId===id);
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⚠️ حذف حساب صاحب المحل</h2><button class="close" onclick="closeModal()">×</button></div><div class="notice" style="background:#fff0f0;border-color:#e5b7b7;color:#7a2525">هل أنت متأكد من حذف حساب <b>«${esc(u.name)}»</b> نهائياً؟${s?`<br>المحل: <b>«${esc(s.shopName)}»</b>`:''}<br>سيتم حذف البيانات المرتبطة نهائياً.</div><div class="product-actions" style="margin-top:14px"><button class="btn secondary full" onclick="closeModal()">إلغاء</button><button class="btn danger full" onclick="confirmDeleteOwnerAccount('${esc(id)}')">تأكيد الحذف النهائي</button></div>`;openModal();
+}
+async function confirmDeleteOwnerAccount(id){
+  const u=localDB.users.find(x=>x.id===id);if(!u)return;const s=localDB.shops.find(x=>x.ownerId===id);
+  try{
+    await deleteFirestoreRecord('users',id);
+    if(s){
+      const productIds=localDB.products.filter(x=>x.shopId===s.shopId).map(x=>x.productId);
+      const offerIds=localDB.specialOffers.filter(x=>x.shopId===s.shopId).map(x=>x.offerId);
+      const requestIds=localDB.promotionRequests.filter(x=>x.shopId===s.shopId).map(x=>x.requestId);
+      const serviceIds=localDB.services.filter((x)=>x.shopId===s.shopId).map((x,i)=>x.serviceId||('service_'+s.shopId+'_'+i));
+      await deleteFirestoreRecord('shops',s.shopId);
+      for(const x of productIds)await deleteFirestoreRecord('products',x);
+      for(const x of offerIds)await deleteFirestoreRecord('specialOffers',x);
+      for(const x of requestIds)await deleteFirestoreRecord('promotionRequests',x);
+      for(const x of serviceIds)await deleteFirestoreRecord('services',x);
+      localDB.shops=localDB.shops.filter(x=>x.shopId!==s.shopId);
+      localDB.products=localDB.products.filter(x=>x.shopId!==s.shopId);
+      localDB.specialOffers=localDB.specialOffers.filter(x=>x.shopId!==s.shopId);
+      localDB.promotionRequests=localDB.promotionRequests.filter(x=>x.shopId!==s.shopId);
+      localDB.services=localDB.services.filter(x=>x.shopId!==s.shopId);
+    }
+    localDB.users=localDB.users.filter(x=>x.id!==id);
+    audit('delete','user',id,{name:u.name,permanent:true});
+    closeModal();toast('تم حذف الحساب وبيانات المحل من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف الحساب من Firestore؛ لم يتم تأكيد العملية.','error');}
+}function toggleUser(id){const u=localDB.users.find(x=>x.id===id);if(u)setUserStatus(id,u.status==='active'?'suspended':'active')}
+
+function adminOffers(){cleanupExpiredOffers();const offers=localDB.specialOffers;return `<div class="form-card"><h2 class="section-title">العروض الخاصة</h2><p class="muted">العروض منفصلة عن المنتجات، والمنتهي منها يُحذف تلقائياً من القائمة العامة.</p><div class="table-wrap"><table class="table"><tr><th>المنتج</th><th>المحل</th><th>الفترة</th><th>الحالة</th></tr>${offers.map(o=>`<tr><td>${esc(productById(o.productId)?.name||'منتج محذوف')}</td><td>${esc(shopById(o.shopId)?.shopName||'')}</td><td>${esc(o.startAt)} → ${esc(o.endAt)}</td><td>${o.endAt>=today()?'فعال/مجدول':'منتهي'}</td></tr>`).join('')||'<tr><td colspan="4">لا توجد عروض</td></tr>'}</table></div></div>`}
+function openShopForm(){
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">إضافة محل إداري</h2><button class="close" aria-label="إغلاق" onclick="closeModal()">×</button></div><form onsubmit="event.preventDefault();saveAdminShop(this)"><div class="form-grid"><div class="field"><label>اسم صاحب المحل</label><input name="ownerName" required></div><div class="field"><label>البريد الإلكتروني</label><input name="email" type="email" required></div><div class="field"><label>اسم المحل</label><input name="shopName" required></div><div class="field"><label>الهاتف</label><input name="phone"></div><div class="field"><label>العنوان</label><input name="address"></div><div class="field"><label>التصنيف</label><select name="categoryId" required><option value="">اختر التصنيف</option>${categories.map(c=>`<option value="${esc(c.id)}">${c.icon} ${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>رابط الموقع على الخريطة</label><input name="mapUrl" type="url"></div><div class="field"><label>الوصف</label><textarea name="description"></textarea></div><button class="btn full">إنشاء المحل</button></div></form>`;
+  openModal();
+}
+function adminPromotions(){return `<div class="form-card"><h2 class="section-title">الحملات والترويج</h2><p class="muted">طلبات الترويج والخدمات المسجلة في النظام.</p>${adminServices()}</div>`}
+function adminAds(){
+  const ads=localDB.advertisements.slice().sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0));
+  return `<div class="form-card"><div class="section-head"><h2 class="section-title">الإعلانات</h2><button class="btn small" onclick="openAdForm()">+ إضافة إعلان</button></div><p class="muted">تحكم كامل بالإعلانات: إضافة، تعديل، حذف، وتحديد فترة ظهور الإعلان من تاريخ إلى تاريخ.</p><div class="table-wrap"><table class="table"><tr><th>الإعلان</th><th>الفترة</th><th>الحالة</th><th>إجراءات</th></tr>${ads.map(a=>`<tr><td>${esc(a.title)}</td><td>${esc(a.startAt)} → ${esc(a.endAt)}</td><td>${a.status==='active'&&validPeriod(a.startAt,a.endAt)?'فعال':'غير فعال'}</td><td><button class="btn small" onclick="openAdForm('${esc(a.advertisementId)}')">تعديل</button> <button class="btn small danger" onclick="deleteAd('${esc(a.advertisementId)}')">حذف</button></td></tr>`).join('')||'<tr><td colspan="4">لا توجد إعلانات</td></tr>'}</table></div></div>`;
+}
+function openAdForm(adId=''){
+  const existing=adId?localDB.advertisements.find(a=>a.advertisementId===adId):null,formId='adForm_'+Date.now();
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">${existing?'تعديل الإعلان':'إضافة إعلان'}</h2><button class="close" onclick="closeModal()">×</button></div>
+  <form id="${formId}" onsubmit="event.preventDefault();saveAd(this,'${esc(adId)}')"><div class="form-grid">
+  <div class="field"><label>عنوان الإعلان</label><input name="title" value="${esc(existing?.title||'')}" required></div>
+  <div class="field"><label>رفع صورة الإعلان</label><input name="imageFile" type="file" accept="image/*" onchange="previewFile(this,'adPreview')"><img id="adPreview" class="preview ${existing?.image?'':'hidden'}" src="${esc(existing?.image||'')}" alt="معاينة الإعلان"></div>
+  <div class="field"><label>أو رابط صورة</label><input name="image" type="url" value="${esc(existing?.image?.startsWith('data:')?'':(existing?.image||''))}" placeholder="https://..."></div>
+  <div class="field"><label>الوصف</label><textarea name="description">${esc(existing?.description||'')}</textarea></div>
+  <div class="field"><label>الرابط عند الضغط</label><input name="targetUrl" type="url" value="${esc(existing?.targetUrl||'')}" placeholder="https://..."></div>
+  <div class="form-grid two"><div class="field"><label>بداية الإعلان</label><input name="startAt" type="text" value="${esc(existing?.startAt||today())}" readonly required onclick="openScheduleDatePicker('${formId}','startAt','تاريخ بداية الإعلان')"></div>
+  <div class="field"><label>نهاية الإعلان</label><input name="endAt" type="text" value="${esc(existing?.endAt||'')}" readonly required onclick="openScheduleDatePicker('${formId}','endAt','تاريخ نهاية الإعلان')"></div></div>
+  <div class="field"><label>ترتيب العرض</label><input name="displayOrder" type="number" min="1" value="${esc(existing?.displayOrder||10)}"></div>
+  <button class="btn full">${existing?'حفظ التعديلات':'حفظ الإعلان'}</button></div></form>`;openModal();
+}
+
+async function deleteAuditLog(logId){
+  if(!logId)return;
+  const exists=(localDB.auditLogs||[]).some(x=>x.logId===logId);
+  if(!exists)return;
+  try{
+    await deleteFirestoreRecord('auditLogs',logId);
+    localDB.auditLogs=localDB.auditLogs.filter(x=>x.logId!==logId);
+    toast('تم حذف سجل الإدارة من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف سجل الإدارة من Firestore.','error');}
+}function adminSettings(){return `<div class="form-card"><h2 class="section-title">الإعدادات</h2><p class="muted">البيانات الأساسية والمفضلة محفوظة في Cloud Firestore. الصور لا تستخدم Firebase Storage؛ يتم ضغطها في المتصفح وحفظها داخل مجموعة <b>media</b> في Firestore.</p><div class="notice">الوضع الحالي Test Mode. قواعد الأمان التي تسمح بالقراءة والكتابة مناسبة للاختبار فقط، وليست حماية إنتاجية.</div></div>`}
+async function saveAd(f,adId=''){
+  const existing=adId?localDB.advertisements.find(a=>a.advertisementId===adId):null;
+  let image=f.image.value.trim() || existing?.image || '';
+  const file=f.imageFile?.files?.[0];
+  if(file){try{image=await fileToDataUrl(file,{maxWidth:1600,maxHeight:900});}catch(e){toast('تعذر ضغط صورة الإعلان','error');return}}
+  if(f.startAt.value&&f.endAt.value&&f.endAt.value<f.startAt.value){toast('تاريخ نهاية الإعلان يجب أن يكون بعد أو يساوي تاريخ البداية','error');return}
+  if(!image){toast('أضف صورة الإعلان أو رابط صورة','error');return}
+  const data={title:f.title.value.trim(),image,description:f.description.value.trim(),targetUrl:safeUrl(f.targetUrl.value),startAt:f.startAt.value,endAt:f.endAt.value,status:'active',displayOrder:Number(f.displayOrder.value||10)};
+  if(existing){Object.assign(existing,data);audit('update','advertisement',adId);}else{const a={advertisementId:'ad'+Date.now(),...data};localDB.advertisements.push(a);audit('create','advertisement',a.advertisementId);}
+  persistDemoData();closeModal();toast(existing?'تم تعديل الإعلان':'تم إنشاء الإعلان');render();
+}
+function deleteAd(adId){
+  const ad=localDB.advertisements.find(a=>a.advertisementId===adId);
+  if(!ad)return;
+  $('#modalBox').innerHTML=`<div class="modal-head">
+    <h2 id="modalTitle">⚠️ تأكيد حذف الإعلان</h2>
+    <button class="close" onclick="closeModal()">×</button>
+  </div>
+  <div class="notice" style="background:#fff0f0;border-color:#e5b7b7;color:#7a2525">
+    هل أنت متأكد من حذف الإعلان <b>«${esc(ad.title)}»</b>؟
+  </div>
+  <div class="product-actions" style="margin-top:14px">
+    <button class="btn secondary full" onclick="closeModal()">لا، إلغاء</button>
+    <button class="btn danger full" onclick="confirmDeleteAd('${esc(adId)}')">نعم، حذف الإعلان</button>
+  </div>`;
+  openModal();
+}
+async function confirmDeleteAd(adId){
+  const ad=localDB.advertisements.find(a=>a.advertisementId===adId);
+  if(!ad)return;
+  try{
+    await deleteFirestoreRecord('advertisements',adId);
+    localDB.advertisements=localDB.advertisements.filter(a=>a.advertisementId!==adId);
+    audit('delete','advertisement',adId);
+    closeModal();toast('تم حذف الإعلان نهائياً من Firestore');render();
+  }catch(e){console.error(e);toast('فشل حذف الإعلان من Firestore، لم يتم تأكيد الحذف.','error');}
+}
+function adminServices(){return `<div class="form-card"><h2 class="section-title">الخدمات والحملات المعتمدة</h2><div class="table-wrap"><table class="table"><tr><th>المحل</th><th>الخدمة</th><th>المبلغ</th><th>الحالة</th><th>الفترة</th></tr>${localDB.services.map(s=>`<tr><td>${esc(shopById(s.shopId)?.shopName||'محل محذوف')}</td><td>${esc(s.serviceType)}</td><td>${s.amount}</td><td>${esc(s.paymentStatus)}</td><td>${s.startAt} → ${s.endAt}</td></tr>`).join('')}</table></div></div>`}
+
+function saveAdminShop(f){
+  const email=f.email.value.trim().toLowerCase();
+  if(localDB.users.some(u=>u.email===email)){toast('البريد الإلكتروني مستخدم مسبقاً','error');return}
+  const uid='u'+Date.now(), sid='s'+Date.now();
+  const u={id:uid,name:f.ownerName.value.trim(),email,password:'123456',role:'shop_owner',status:'active'};
+  const shop={shopId:sid,ownerId:uid,shopName:f.shopName.value.trim(),description:f.description.value.trim(),categoryId:f.categoryId.value,logo:'',coverImage:'',phone:f.phone.value.trim(),whatsapp:f.phone.value.trim(),address:f.address.value.trim(),mapUrl:safeUrl(f.mapUrl?.value||''),workingHours:'',status:'active',isVisible:true,isFeatured:false,featuredStartAt:null,featuredEndAt:null,createdAt:today(),updatedAt:today(),deletedAt:null,searchKeywords:[],displayOrder:localDB.shops.length+1};
+  localDB.users.push(u);localDB.shops.push(shop);persistDemoData();audit('create','shop',sid);closeModal();toast('تم إنشاء المحل محلياً — كلمة مرور المالك 123456');render();
+}
+let modalReturnFocus=null;
+function openModal(){modalReturnFocus=document.activeElement;$('#modal').classList.add('show');$('#modal').setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>$('#modalBox')?.querySelector('input,select,textarea,button')?.focus(),0)}
+function closeModal(){$('#modal').classList.remove('show');$('#modal').setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');if(modalReturnFocus?.focus)modalReturnFocus.focus()}
+window.addEventListener('keydown',e=>{
+  if(!$('#modal')?.classList.contains('show'))return;
+  if(e.key==='Escape'){closeModal();return}
+  if(e.key==='Tab'){
+    const els=[...$('#modalBox').querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&x.offsetParent!==null);
+    if(!els.length)return;const first=els[0],last=els[els.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+  }
+});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+$('#datePickerOverlay').addEventListener('click',e=>{if(e.target.id==='datePickerOverlay')closeDatePicker()});
+
+/* =========================
+   ROUTE RENDER
+   ========================= */
+function notFound(msg='الصفحة غير موجودة'){
+  return page('غير موجود',`<div class="empty"><div style="font-size:42px">⌁</div><h2>${esc(msg)}</h2><button class="btn" onclick="setRoute('home')">الرئيسية</button></div>`);
+}
+function recordRouteView(){}
+function render(){
+  try{recordRouteView();
+    const r=State.route; let out='';
+    if(r.name==='home')out=home();
+    else if(r.name==='categories')out=categoriesPage();
+    else if(r.name==='category')out=categoryPage(r.params.id);
+    else if(r.name==='shops')out=shopsPage();
+    else if(r.name==='featured-shops')out=featuredShopsPage();
+    else if(r.name==='featured-products')out=featuredProductsPage();
+    else if(r.name==='offers')out=offersPage();
+    else if(r.name==='shop')out=shopPage(r.params.id);
+    else if(r.name==='product')out=productPage(r.params.id);
+    else if(r.name==='search')out=searchPage(r.params.q||'');
+    else if(r.name==='favorites')out=favoritesPage();
+    else if(r.name==='login')out=loginPage();
+    else if(r.name==='register')out=registerPage();
+    else if(r.name==='account')out=accountPage();
+    else if(r.name==='owner')out=ownerDashboard();
+    else if(r.name==='admin')out=adminDashboard();
+    else if(r.name==='admin-panel')out=adminDashboard();
+    else out=notFound();
+    $('#app').innerHTML=out;
+  }catch(err){
+    console.error(err);
+    $('#app').innerHTML=page('حدث خطأ',`<div class="error"><h2>حدث خطأ، حاول مرة أخرى</h2><p>${esc(err.message)}</p><button class="btn" onclick="setRoute('home')">العودة للرئيسية</button></div>`);
+  }
+}
+
+/* =========================
+   INITIALIZATION
+   ========================= */
+try{
+  const uid=sessionStorage.getItem('demo_owner');
+  if(uid)State.currentUser=localDB.users.find(u=>u.id===uid&&u.role==='shop_owner'&&u.status==='active')||null;
+  if(!State.currentUser){
+    const savedLogin=JSON.parse(localStorage.getItem('ais_owner_login')||'null');
+    if(savedLogin?.ownerId){
+      State.currentUser=localDB.users.find(u=>u.id===savedLogin.ownerId&&u.role==='shop_owner'&&u.status==='active')||null;
+      if(State.currentUser)sessionStorage.setItem('demo_owner',State.currentUser.id);
+    }
+  }
+  State.adminUnlocked=sessionStorage.getItem('admin_unlocked')==='1';
+}catch(e){}
+parseRoute();
+render();
+
+/*
+===========================================================
+FIREBASE / FIRESTORE — CURRENT BUILD
+===========================================================
+- Firebase App + Cloud Firestore are initialized with the supplied project configuration.
+- This build intentionally does NOT use Firebase Storage.
+- All application collections are synchronized to Firestore.
+- Images are compressed in-browser and stored as base64 data URLs inside Firestore `media` documents;
+  the main records keep `media://...` references.
+- Favorites are stored in Firestore under `favorites/{deviceId}`.
+- The current project is intended for the user's Firestore Test Mode.
+- Before production, replace the open Test Mode rules with authenticated, least-privilege rules.
+*/
+
+
+
+let deferredInstallPrompt=null;
+function isAppInstalled(){return window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true||localStorage.getItem('ais_app_installed')==='1'}
+function updateInstallButton(){const b=document.getElementById('installFab');if(b)b.classList.toggle('show',!isAppInstalled())}
+window.addEventListener('load',()=>setTimeout(updateInstallButton,100));
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
+window.addEventListener('appinstalled',()=>{localStorage.setItem('ais_app_installed','1');deferredInstallPrompt=null;updateInstallButton()});
+async function requestAppInstall(){
+  if(isAppInstalled()){updateInstallButton();return}
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">📲 تحميل التطبيق</h2><button class="close" onclick="closeModal()">×</button></div>
+  <p>هل أنت متأكد من تحميل تطبيق <b>سوق العيص الإلكتروني</b>؟</p>
+  <div class="product-actions">
+    <button class="btn secondary full" onclick="closeModal()">لا</button>
+    <button class="btn gold full" onclick="confirmAppInstall()">نعم</button>
+  </div>`;
+  openModal();
+}
+async function confirmAppInstall(){
+  if(!deferredInstallPrompt){
+    closeModal();
+    toast('المتصفح لم يجهّز التثبيت حالياً','error');
+    return;
+  }
+  const p=deferredInstallPrompt;
+  deferredInstallPrompt=null;
+  closeModal();
+  try{
+    await p.prompt();
+    const r=await p.userChoice;
+    if(r?.outcome==='accepted')localStorage.setItem('ais_app_installed','1');
+  }catch(e){console.warn(e)}
+  updateInstallButton();
+}
+
+
+/* =========================
+   ENHANCED UI OVERRIDES
+   ========================= */
+function shopIsOpen(s){
+  const raw=String(s?.workingHours||'').trim();
+  if(!raw)return null;
+  const m=raw.match(/(\d{1,2}):(\d{2})\s*(صباحاً|صباحا|مساءً|مساء)\s*-\s*(\d{1,2}):(\d{2})\s*(صباحاً|صباحا|مساءً|مساء)/i);
+  if(!m)return null;
+  const toMin=(h,mi,period)=>{h=Number(h);mi=Number(mi);if(/مساء/.test(period)&&h<12)h+=12;if(/صباح/.test(period)&&h===12)h=0;return h*60+Number(mi)};
+  const start=toMin(m[1],m[2],m[3]),end=toMin(m[4],m[5],m[6]);
+  const now=new Date(),cur=now.getHours()*60+now.getMinutes();
+  return start<=end?cur>=start&&cur<=end:(cur>=start||cur<=end);
+}
+function shopStatusHtml(s){
+  const open=shopIsOpen(s);
+  if(open===null)return '';
+  return `<span class="shop-status ${open?'':'closed'}"><span class="open-dot ${open?'':'closed'}"></span>${open?'مفتوح الآن':'مغلق الآن'}</span>`;
+}
+function categoryCards(){
+  return `<div class="category-grid-home">${categories.map(c=>`<button class="category-mini" onclick="setRoute('category',{id:'${esc(c.id)}'})"><span class="cat-icon">${c.icon}</span><span><strong>${esc(c.name)}</strong><small>${publicShops().filter(s=>s.categoryId===c.id).length} محلات</small></span></button>`).join('')}</div>`;
+}
+function shopCard(s){
+  const c=catById(s.categoryId);
+  return `<article class="shop-card-v2">
+    <div class="shop-thumb" onclick="setRoute('shop',{id:'${esc(s.shopId)}'})">
+      ${s.coverImage?`<img src="${esc(s.coverImage)}" alt="${esc(s.shopName)}" loading="lazy">`:'<div class="placeholder">🏪</div>'}
+      ${s.logo?`<img class="shop-logo-float" src="${esc(s.logo)}" alt="${esc(s.shopName)}" loading="lazy">`:''}
+      ${isFeatured(s)?'<span class="offer-ribbon">⭐ مميز</span>':''}
+    </div>
+    <div class="shop-card-body">
+      <div class="shop-card-title">${esc(s.shopName)}</div>
+      <div class="shop-meta">${c?.icon||''} ${esc(c?.name||'')}</div>
+      ${shopStatusHtml(s)}
+      <div class="shop-card-actions"><button class="btn small full" onclick="setRoute('shop',{id:'${esc(s.shopId)}'})">فتح المحل</button><button class="btn small secondary" aria-label="المفضلة" onclick="toggleFav('shop','${esc(s.shopId)}')">${isFav('shop',s.shopId)?'♥':'♡'}</button></div>
+    </div>
+  </article>`;
+}
+function productCard(p,cartMode=false){
+  const s=shopById(p.shopId);if(!s)return '';
+  const offer=p._offer||activeOffers().find(x=>x.productId===p.productId)?._offer;
+  const currentPrice=offer?.newPrice!=null?Number(offer.newPrice):Number(p.price);
+  const oldPrice=offer?.oldPrice!=null?Number(offer.oldPrice):null;
+  const featured=isFeatured(p)||isAdminFeaturedProduct(p);
+  return `<article class="product-card-v2">
+    <div class="pc-img" onclick="setRoute('product',{id:'${esc(p.productId)}'})">${imgOrPlaceholder(p.image,p.name)}${offer?'<span class="pc-badge">🔥 عرض خاص</span>':featured?'<span class="pc-badge">⭐ مميز</span>':''}</div>
+    <div class="pc-body">
+      <div class="pc-name">${esc(p.name)}</div><div class="pc-shop">${esc(s.shopName)}</div>
+      <div class="pc-price">${currentPrice.toFixed(2)} د.أ ${oldPrice!=null?`<span class="old-price">${oldPrice.toFixed(2)} د.أ</span>`:''}</div>
+      ${offer?`<span class="expiry-note">من ${esc(offer.startAt)} إلى ${esc(offer.endAt)}</span>`:''}
+      <div class="pc-actions ${offer?'offer-actions':''}">
+        <button class="btn small ${offer?'gold':'full'}" onclick="setRoute('product',{id:'${esc(p.productId)}'})">التفاصيل</button>
+        ${offer?`<button class="btn small gold" onclick="offerQuickOrder('${esc(p.productId)}')">طلب</button>`:''}
+        ${cartMode?`<button class="btn small gold" onclick="addToShopCart('${esc(p.shopId)}','${esc(p.productId)}',1)">🛒</button>`:''}
+        <button class="btn small secondary" onclick="toggleFav('product','${esc(p.productId)}')">${isFav('product',p.productId)?'♥':'♡'}</button>
+      </div>
+    </div>
+  </article>`;
+}
+function home(){
+  const featuredShops=publicShops().filter(isFeatured).slice(0,6);
+  const offers=activeOffers().slice(0,6);
+  const featuredProducts=publicProducts().filter(isFeatured).slice(0,6);
+  const ads=localDB.advertisements.filter(a=>a.status==='active'&&validPeriod(a.startAt,a.endAt)).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0));
+  return page('',`<div class="hero">
+      <span class="home-kicker">🛍️ سوق محلي في مكان واحد</span>
+      <h1>سوق العيص الإلكتروني</h1><p>اكتشف المحلات والمنتجات والعروض القريبة منك بسهولة.</p>
+      <p class="quick-search-title">🔎 ماذا تبحث عنه؟</p>
+      <form class="searchbox home-search" onsubmit="event.preventDefault();State.query=this.q.value;setRoute('search',{q:this.q.value})"><input name="q" value="${esc(State.query)}" placeholder="محل، منتج، تصنيف..." aria-label="البحث"><button>بحث</button></form>
+    </div>
+    ${ads.length?section('📢 إعلانات مهمة',`<div class="grid">${ads.slice(0,2).map(a=>`<article class="banner" onclick="window.open(safeUrl('${jsq(a.targetUrl||'#')}'),'_blank','noopener,noreferrer')">${a.image?`<img src="${esc(a.image)}" alt="${esc(a.title)}" loading="lazy">`:''}<div class="banner-body"><b>${esc(a.title)}</b><div class="meta">${esc(a.description)}</div></div></article>`).join('')}</div>`):''}
+
+
+
+
+    ${section('🏪 المحلات المميزة',featuredShops.length?`<div class="featured-shop-grid">${featuredShops.map(featuredShopCard).join('')}</div>`:`<div class="empty">لا توجد محلات مميزة حالياً</div>`,'setRoute(\"featured-shops\")')}
+
+    <section class="section home-offers-section">
+      <button type="button" class="home-offers-toggle" aria-expanded="false" aria-controls="homeOffersBox" onclick="toggleHomeOffers(this)">
+        <span><span class="home-offers-icon">🔥</span><span><b>العروض الخاصة</b><small>اضغط لعرض العروض الحالية</small></span></span>
+        <span class="home-offers-arrow">⌄</span>
+      </button>
+      <div id="homeOffersBox" class="home-offers-box hidden">
+        ${offers.length?`<div class="product-grid-v2">${offers.map(p=>productCard(p,false)).join('')}</div>`:`<div class="empty">لا توجد عروض خاصة حالياً</div>`}
+      </div>
+    </section>
+
+    <section class="section home-featured-section">
+      <button type="button" class="home-offers-toggle home-featured-toggle" aria-expanded="false" aria-controls="homeFeaturedProductsBox" onclick="toggleHomeProducts(this)">
+        <span><span class="home-offers-icon">⭐</span><span><b>المنتجات المميزة</b><small>اضغط لعرض المنتجات المميزة</small></span></span>
+        <span class="home-offers-arrow">⌄</span>
+      </button>
+      <div id="homeFeaturedProductsBox" class="home-offers-box hidden">
+        ${featuredProducts.length?`<div class="product-grid-v2">${featuredProducts.map(p=>productCard(p,false)).join('')}</div>`:`<div class="empty">لا توجد منتجات مميزة حالياً</div>`}
+      </div>
+    </section>
+
+    ${section('الأصناف',categoryCards(),'setRoute(\"categories\")')}
+
+
+  `,false);
+}
+
+function shopPage(id){
+  const s=shopById(id);if(!isPublicShop(s))return notFound('المحل غير متاح');
+  const all=publicProducts().filter(p=>p.shopId===id);
+  const offers=activeOffersForShop(id);
+  const offerById=new Map(offers.map(p=>[p.productId,p._offer]));
+  // العرض الخاص أو التمييز يضيف صفة للمنتج فقط؛ لا يخرجه من قائمة منتجات المحل الأصلية.
+  const listedProducts=all.map(p=>offerById.has(p.productId)?{...p,_offer:offerById.get(p.productId)}:p);
+  const featured=listedProducts.filter(p=>isFeatured(p));
+  let rest=listedProducts;
+  const q=String(State.shopSearch||'').trim().toLowerCase();
+  if(q)rest=rest.filter(p=>`${p.name} ${p.description}`.toLowerCase().includes(q));
+  const mode=State.shopSort||'default';
+  const sorted=[...rest];
+  if(mode==='price-asc')sorted.sort((a,b)=>Number(a.price)-Number(b.price));
+  if(mode==='price-desc')sorted.sort((a,b)=>Number(b.price)-Number(a.price));
+  if(mode==='name')sorted.sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));
+  const open=shopIsOpen(s);
+  return page(s.shopName,`<div class="detail-head">
+    <div class="detail-cover">${imgOrPlaceholder(s.coverImage,s.shopName)}</div>
+    <div class="detail-info"><div class="shop-identity">${s.logo?`<img class="detail-logo" src="${esc(s.logo)}" alt="${esc(s.shopName)}" loading="lazy">`:`<div class="placeholder detail-logo">🏪</div>`}<div><div class="detail-title">${esc(s.shopName)} ${isFeatured(s)?'<span class="badge gold">⭐ مميز</span>':''}</div><div class="meta">${catById(s.categoryId)?.icon||''} ${esc(catById(s.categoryId)?.name||'')}</div>${open!==null?`<div class="shop-status ${open?'':'closed'}"><span class="open-dot ${open?'':'closed'}"></span>${open?'مفتوح الآن':'مغلق الآن'}</div>`:''}</div></div>
+    <p>${esc(s.description)}</p><div class="chips"><span class="chip">🕒 ${esc(s.workingHours||'ساعات العمل غير محددة')}</span><span class="chip">📍 ${esc(s.address||'العنوان غير محدد')}</span><span class="chip">${s.hasDelivery?'🚕 يوجد توصيل':'🏪 استلام من المحل'}</span></div>
+    <div class="action-row"><button class="btn gold" onclick="document.getElementById('shopProducts').scrollIntoView({behavior:'smooth'})"><span class="action-icon">🛍️</span>تسوق</button><button class="btn" onclick="whatsapp(${jsq(s.whatsapp||s.phone)},${jsq('مرحباً، أريد الاستفسار عن منتجات وعروض '+s.shopName+'.')})"><span class="action-icon">💬</span>واتساب</button><button class="btn secondary" onclick="callShop(shopById('${esc(s.shopId)}'))"><span class="action-icon">📞</span>اتصال</button>${s.mapUrl?`<button class="btn secondary" onclick="openMap(shopById('${esc(s.shopId)}'))"><span class="action-icon">📍</span>الموقع</button>`:''}<button class="btn secondary" onclick="shareItem(${jsq(s.shopName)},${jsq(s.description)},location.href)"><span class="action-icon">↗</span>مشاركة</button><button class="btn gold" onclick="toggleFav('shop','${esc(s.shopId)}')"><span class="action-icon">${isFav('shop',s.shopId)?'♥':'♡'}</span>مفضلة</button></div>
+    </div></div>
+    ${section('🔥 العروض الخاصة',offers.length?`<div id="shopProductsAnchor" class="product-grid-v2">${offers.map(p=>productCard(p,true)).join('')}</div>`:`<div class="empty">لا توجد عروض خاصة حالياً</div>`)}
+    ${section('⭐ المنتجات المميزة',featured.length?`<div class="product-grid-v2">${featured.map(p=>productCard(p,true)).join('')}</div>`:`<div class="empty">لا توجد منتجات مميزة حالياً</div>`)}
+    <section class="section"><div class="section-head"><div><h2 class="section-title">منتجات المحل</h2><small class="muted">${sorted.length} منتج</small></div></div>
+      <div class="shop-tools"><div class="shop-tools-head"><span class="shop-tools-title">🔍 ابحث داخل المحل</span><select onchange="State.shopSort=this.value;render()"><option value="default" ${mode==='default'?'selected':''}>الترتيب الافتراضي</option><option value="price-asc" ${mode==='price-asc'?'selected':''}>الأقل سعراً</option><option value="price-desc" ${mode==='price-desc'?'selected':''}>الأعلى سعراً</option><option value="name" ${mode==='name'?'selected':''}>الاسم</option></select></div><form class="shop-searchbox" onsubmit="event.preventDefault();State.shopSearch=this.q.value;render()"><input name="q" value="${esc(State.shopSearch||'')}" placeholder="مثلاً: شاورما، قهوة، كيك..."><button class="btn small">بحث</button></form><div class="filter-strip"><button class="filter-pill active">الكل</button><button class="filter-pill" onclick="State.shopSearch='';State.shopSort='price-asc';render()">الأقل سعراً</button><button class="filter-pill" onclick="State.shopSearch='';State.shopSort='price-desc';render()">الأعلى سعراً</button><button class="filter-pill" onclick="State.shopSearch='';State.shopSort='name';render()">الاسم</button></div></div>
+      <div id="shopProducts" class="product-grid-v2" style="margin-top:10px">${sorted.length?sorted.map(p=>productCard(p,true)).join(''):`<div class="empty" style="grid-column:1/-1">لا توجد منتجات مطابقة للبحث.</div>`}</div></section>
+    ${shopCartUI(s.shopId)}`);
+}
+function bottomNav(){
+  const r=State.route.name;
+  const activeHome=r==='home'?'active':'';
+  const activeCategories=r.startsWith('category')||r==='categories'?'active':'';
+  const activeSearch=r==='search'?'active':'';
+  const activeFavorites=r==='favorites'?'active':'';
+  return `<nav class="bottom-nav public-bottom-nav"><button class="nav-item ${activeHome}" onclick="setRoute('home')"><span>⌂</span>الرئيسية</button><button class="nav-item ${activeCategories}" onclick="setRoute('categories')"><span>▦</span>التصنيفات</button><button class="nav-item ${activeSearch}" onclick="setRoute('search')"><span>⌕</span>البحث</button><button class="nav-item ${activeFavorites}" onclick="setRoute('favorites')"><span>♡</span>المفضلة</button></nav>`;
+}
+function ownerDashboard(){
+  const u=State.currentUser;if(!u||u.role!=='shop_owner')return page('لوحة صاحب المحل',`<div class="empty">هذه الواجهة متاحة لحساب صاحب المحل. <button class="btn" onclick="setRoute('login')">تسجيل الدخول</button></div>`);
+  const s=localDB.shops.find(x=>x.ownerId===u.id);if(!s)return page('لوحة صاحب المحل',`<div class="empty">لا يوجد محل مرتبط بهذا الحساب.</div>`);
+  if(!['active','approved'].includes(s.status))return page('لوحة صاحب المحل',`<div class="form-card center"><h1 class="section-title">${esc(s.shopName)}</h1><p class="muted">حالة الطلب: <b>${esc(s.status)}</b></p><div class="notice">لا يمكنك إدارة المنتجات والعروض أو نشر المحل قبل موافقة الإدارة.</div><button class="btn" onclick="setRoute('account')">العودة إلى الحساب</button></div>`);
+  cleanupExpiredOffers();
+  const products=localDB.products.filter(p=>p.shopId===s.shopId&&p.status!=='deleted');
+  const offers=localDB.specialOffers.filter(o=>o.shopId===s.shopId&&o.endAt>=today());
+  const featuredProducts=products.filter(isFeatured).length;
+  const tab=State.ownerTab||'overview';let content='';
+  if(tab==='overview')content=`<div class="form-card"><h2 class="section-title">مرحباً ${esc(u.name)} 👋</h2><p class="muted">إدارة المحل والمنتجات والعروض والتمييز من مكان واحد.</p><div class="dashboard-stats"><div class="dashboard-stat"><b>${products.length}</b><span>📦 المنتجات</span></div><div class="dashboard-stat"><b>${offers.length}</b><span>🔥 العروض</span></div><div class="dashboard-stat"><b>${featuredProducts}</b><span>⭐ منتجات مميزة</span></div><div class="dashboard-stat"><b>${isFeatured(s)?'⭐':'—'}</b><span>تمييز المحل</span></div></div><div class="notice" style="margin-top:14px">💡 نصيحة: حافظ على الصور والأسعار محدثة، واستخدم العروض والتمييز لإبراز المنتجات المهمة.</div></div>`;
+  if(tab==='shop')content=ownerShopForm(s);
+  if(tab==='products')content=ownerProducts(s,products);
+  if(tab==='offers')content=ownerOffers(s);
+  return page('لوحة صاحب المحل',`<div class="hero" style="padding:20px"><span class="home-kicker">⚙️ إدارة المحل</span><h1>${esc(s.shopName)}</h1><p>اختر القسم الذي تريد إدارته.</p></div><div class="owner-nav">${[['overview','▦','الرئيسية'],['shop','🏪','بيانات المحل'],['products','📦','المنتجات'],['offers','🔥','العروض']].map(x=>`<button class="tab ${tab===x[0]?'active':''}" onclick="State.ownerTab='${x[0]}';render()">${x[1]} ${x[2]}</button>`).join('')}</div>${content}`);
+}
+function ownerProducts(s,products){
+  return `<div class="form-card"><div class="section-head"><div><h2 class="section-title">📦 منتجات المحل</h2><small class="muted">${products.length} منتج منشور</small></div><button class="btn small gold" onclick="openProductForm('${esc(s.shopId)}')">+ إضافة منتج</button></div>${products.length?`<div class="table-wrap"><table class="table"><tr><th>المنتج</th><th>السعر</th><th>الحالة</th><th>التمييز</th><th>إجراءات</th></tr>${products.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${Number(p.price).toFixed(2)} د.أ</td><td><span class="badge">${esc(p.status==='active'?'منشور':p.status)}</span></td><td>${isFeatured(p)?'⭐ مميز'+(p.featuredEndAt?` حتى ${esc(p.featuredEndAt)}`:' مستمر'):'غير مميز'}</td><td><div class="row"><button class="btn small" onclick="openProductForm('${esc(s.shopId)}','${esc(p.productId)}')">تعديل</button><button class="btn small gold" onclick="openOwnerProductFeaturedForm('${esc(p.productId)}')">${isFeatured(p)?'⭐ تعديل':'⭐ تمييز'}</button><button class="btn small danger" onclick="deleteLocalProduct('${esc(p.productId)}')">حذف</button></div></td></tr>`).join('')}</table></div>`:'<div class="empty">لا توجد منتجات حالياً. ابدأ بإضافة أول منتج.</div>'}</div>`;
+}
+function openShopFeaturedForm(id){
+  const s=shopById(id);if(!s)return;const formId='shopFeature_'+Date.now();
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⭐ تمييز المحل</h2><button class="close" onclick="closeModal()">×</button></div><form id="${formId}" onsubmit="event.preventDefault();saveShopFeatured(this,'${esc(id)}')"><div class="form-grid"><div class="notice"><b>${esc(s.shopName)}</b><br>حدد فترة ظهور المحل ضمن «المحلات المميزة».</div><div class="field"><label>حالة التمييز</label><select name="featured"><option value="on" ${s.isFeatured?'selected':''}>⭐ تفعيل التمييز</option><option value="off" ${!s.isFeatured?'selected':''}>إلغاء التمييز</option></select></div><div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="startAt" type="text" value="${esc(s.featuredStartAt||today())}" readonly onclick="openScheduleDatePicker('${formId}','startAt','تاريخ بداية تمييز المحل')"></div><div class="field"><label>إلى تاريخ</label><input name="endAt" type="text" value="${esc(s.featuredEndAt||'')}" readonly onclick="openScheduleDatePicker('${formId}','endAt','تاريخ نهاية تمييز المحل')"></div></div><button class="btn full">حفظ حالة التمييز</button></div></form>`;openModal();
+}
+function openAdminProductForm(pid){
+  const p=productById(pid);if(!p)return;const formId='adminProductFeature_'+Date.now();
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⭐ تمييز المنتج للواجهة</h2><button class="close" onclick="closeModal()">×</button></div><form id="${formId}" onsubmit="event.preventDefault();saveAdminProductFeatured(this,'${esc(pid)}')"><div class="form-grid"><div class="notice"><b>${esc(p.name)}</b><br>${esc(shopById(p.shopId)?.shopName||'')}</div><label class="chip" style="width:max-content"><input name="adminFeatured" type="checkbox" ${p.adminFeatured?'checked':''}> ⭐ إظهار المنتج ضمن المنتجات المميزة</label><div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="adminFeaturedStartAt" type="text" value="${esc(p.adminFeaturedStartAt||today())}" readonly onclick="openScheduleDatePicker('${formId}','adminFeaturedStartAt','تاريخ بداية تمييز المنتج')"></div><div class="field"><label>إلى تاريخ</label><input name="adminFeaturedEndAt" type="text" value="${esc(p.adminFeaturedEndAt||'')}" readonly onclick="openScheduleDatePicker('${formId}','adminFeaturedEndAt','تاريخ نهاية تمييز المنتج')"></div></div><button class="btn full">حفظ التمييز</button></div></form>`;openModal();
+}
+function openProductForm(shopId,pid=''){
+  const p=pid?productById(pid):{name:'',description:'',price:'',image:'',isFeatured:false,featuredStartAt:'',featuredEndAt:''};
+  const featured=!!isFeatured(p),formId='productForm_'+shopId+'_'+(pid||'new');
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">${pid?'تعديل المنتج':'إضافة منتج'}</h2><button class="close" onclick="closeModal()">×</button></div><form id="${formId}" onsubmit="event.preventDefault();saveProductForm(this,'${esc(shopId)}','${esc(pid)}')"><div class="form-grid"><div class="field"><label>اسم المنتج</label><input name="name" value="${esc(p.name)}" required></div><div class="field"><label>الوصف</label><textarea name="description">${esc(p.description)}</textarea></div><div class="field"><label>السعر</label><input name="price" type="number" step="0.01" min="0" value="${esc(p.price)}" required></div><div class="field"><label>الصورة</label><input id="productFormImageUrl" name="imageUrl" value="${esc(p.image||'')}" placeholder="رابط صورة (اختياري)"><input type="file" accept="image/*" onchange="loadProductImage(this)"><img id="productPreview" class="preview ${p.image?'':'hidden'}" src="${esc(p.image||'')}" onerror="this.style.display='none'"></div><label class="chip"><input name="featured" type="checkbox" ${featured?'checked':''} onchange="this.form.featuredStartAt.disabled=!this.checked;this.form.featuredEndAt.disabled=!this.checked"> ⭐ تمييز المنتج داخل صفحة المحل</label><div class="form-grid two"><div class="field"><label>بداية التمييز</label><input name="featuredStartAt" type="text" value="${esc(p.featuredStartAt||today())}" readonly ${featured?'':'disabled'} onclick="openScheduleDatePicker('${formId}','featuredStartAt','تاريخ بداية تمييز المنتج')"></div><div class="field"><label>نهاية التمييز</label><input name="featuredEndAt" type="text" value="${esc(p.featuredEndAt||'')}" readonly ${featured?'':'disabled'} onclick="openScheduleDatePicker('${formId}','featuredEndAt','تاريخ نهاية تمييز المنتج')"></div></div><button class="btn full">حفظ المنتج</button></div></form>`;openModal();
+}
+function openOwnerProductFeaturedForm(pid){
+  const p=productById(pid);if(!p)return;const on=!!isFeatured(p),formId='ownerFeatureForm_'+Date.now();
+  $('#modalBox').innerHTML=`<div class="modal-head"><h2 id="modalTitle">⭐ تمييز المنتج داخل المحل</h2><button class="close" onclick="closeModal()">×</button></div><form id="${formId}" onsubmit="event.preventDefault();saveOwnerProductFeatured(this,'${esc(pid)}')"><div class="form-grid"><div class="notice"><b>${esc(p.name)}</b><br>سيظهر التمييز داخل صفحة محلك فقط.</div><label class="chip"><input name="featured" type="checkbox" ${on?'checked':''} onchange="this.form.startAt.disabled=!this.checked;this.form.endAt.disabled=!this.checked||this.form.noEnd.checked"> ⭐ تمييز المنتج</label><div class="form-grid two"><div class="field"><label>من تاريخ</label><input name="startAt" type="text" value="${esc(p.featuredStartAt||today())}" readonly ${on?'':'disabled'} onclick="openScheduleDatePicker('${formId}','startAt','تاريخ بداية التمييز')"></div><div class="field"><label>إلى تاريخ</label><input name="endAt" type="text" value="${esc(p.featuredEndAt||'')}" readonly ${on&&!p.featuredEndAt?'disabled':''} onclick="openScheduleDatePicker('${formId}','endAt','تاريخ نهاية التمييز')"></div></div><label class="chip"><input name="noEnd" type="checkbox" ${on&&!p.featuredEndAt?'checked':''} onchange="this.form.endAt.disabled=this.checked||!this.form.featured.checked;if(this.checked)this.form.endAt.value=''"> مستمر بدون تاريخ انتهاء</label><button class="btn full">حفظ التمييز</button></div></form>`;openModal();
+}
+
+</script>
+
+</body>
+</html>
